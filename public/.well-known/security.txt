@@ -1,0 +1,5 @@
+# Como reportar uma falha de segurança neste site
+Contact: mailto:marciodogaoitapevi@gmail.com
+Expires: 2027-11-03T00:00:00.000Z
+Preferred-Languages: pt, en
+Canonical: https://mdogao.com.br/.well-known/security.txt

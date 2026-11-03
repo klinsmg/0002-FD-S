@@ -1,0 +1,28 @@
+/* TEMA: Dogão Itapevi — cores tiradas da logo (vinho + âmbar). Tudo mais lê estas variáveis. */
+:root{
+  --fundo:#130907;        /* página */
+  --superficie:#1f100c;   /* cartões */
+  --linha:#3a211a;        /* bordas */
+  --vinho:#7d0008;        /* cor da logo */
+  --primaria:#c8142a;     /* botões (vinho mais vivo, contraste com texto branco) */
+  --destaque:#f4a93a;     /* âmbar da logo */
+  --creme:#fbe9c4;        /* texto forte */
+  --texto:#e9d9c4;        /* texto corrido (contraste > 7:1 no fundo) */
+  --fundo-fundo:#0c0504;  /* rodapé */
+  --primaria-hover:#e01a34;
+  --vinho-fundo:#4a0006;  /* fim do degradê do rodízio */
+  --texto-fraco:#c9b59d;  /* notas */
+  --texto-suave:#b3a08a;  /* legal */
+  --texto-mudo:#8f7d69;   /* crédito */
+  --placeholder:#a8967f;
+  --neutro:#8b7a6a;
+  --ok:#3ddc84;
+  --erro:#e5484d;
+  --fonte-titulo:var(--f-titulo),Impact,sans-serif;
+  --fonte-script:var(--f-script),cursive;
+  --fonte-corpo:var(--f-corpo),system-ui,sans-serif;
+  --raio:22px;
+  --header-h:76px;
+  --sombra:#000;
+  --branco:#fff;
+}
