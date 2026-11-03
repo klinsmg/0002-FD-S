@@ -448,8 +448,10 @@ main{animation:pagein .5s cubic-bezier(.22,1,.36,1) backwards}
 .sec-vid .vids video{width:min(calc((min(1180px,100vw - 40px) - 2*var(--gap))/3),calc(var(--disp)*9/16));height:auto;aspect-ratio:9/16;flex:none}
 @media(max-width:759px){
   .sec-vid{--gap:20px;height:auto;min-height:0;padding:40px 0}
-  .sec-vid .vids{flex-direction:column;align-items:center}
-  .sec-vid .vids video{width:min(100%,340px)}
+  /* carrossel: desliza para o lado, o próximo vídeo aparece "espiando" na borda para indicar que há mais */
+  .sec-vid .vids{justify-content:flex-start;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin-inline:-20px;padding:0 20px 6px;scroll-padding-inline:20px;overscroll-behavior-x:contain;scrollbar-width:none}
+  .sec-vid .vids::-webkit-scrollbar{display:none}
+  .sec-vid .vids video{width:min(66vw,260px);scroll-snap-align:start}
 }
 
 /* card "Seu pedido" compacto */
@@ -591,3 +593,16 @@ address,.hor,.end,.canais,.sel{-webkit-user-select:text;user-select:text}
 .legal-nav{grid-template-columns:minmax(0,1fr)}
 .legal-nav>nav{min-width:0}
 .nf-txt .script{margin:0 0 14px}
+
+/* indicadores do carrossel de vídeos (só no celular) */
+.vids-dica,.vids-pontos{display:flex;justify-content:center;align-items:center}
+@media(min-width:760px){.vids-dica,.vids-pontos{display:none}}
+.vids-dica{gap:8px;margin:6px 0 0;font:600 13px var(--fonte-corpo);color:var(--texto-fraco)}
+.vids-dica i{font-style:normal;color:var(--destaque);font-size:18px;animation:dica 1.4s ease-in-out infinite}
+@keyframes dica{0%,100%{transform:translateX(0)}50%{transform:translateX(7px)}}
+.vids-pontos{gap:0}
+.vids-pontos button{all:unset;box-sizing:border-box;width:44px;height:44px;cursor:pointer;display:grid;place-items:center}
+.vids-pontos button::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--linha);transition:width .25s,background-color .25s}
+.vids-pontos button.on::before{width:26px;border-radius:6px;background:var(--destaque)}
+.vids-pontos button:focus-visible{outline:3px solid var(--destaque);outline-offset:-6px;border-radius:12px}
+@media(prefers-reduced-motion:reduce){.vids-dica i{animation:none}}

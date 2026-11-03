@@ -138,10 +138,24 @@ export default function Home() {
           <p className="script">direto da cozinha</p>
           <h2>Dá <em>água na boca</em></h2>
         </header>
-        <div className="vids">
-          {([['v05', ALT.v05], ['v10', ALT.v10], ['v13', ALT.v13]] as const).map(([v, desc]) => (
-            <video key={v} data-reveal controls playsInline preload="metadata" aria-label={`Vídeo: ${desc}`} src={`/video/${v}.mp4#t=0.6`} />
-          ))}
+        <div className="vids-wrap" x-data="{i:0,tocou:false}">
+          <div
+            className="vids" role="group" aria-label="Vídeos do MDogão Itapevi: deslize para o lado para ver cada um"
+            {...A({ 'x-on:scroll.passive': "tocou=true; i=Math.round($el.scrollLeft/($el.children[1].offsetLeft-$el.children[0].offsetLeft))" })}
+          >
+            {([['v05', ALT.v05], ['v10', ALT.v10], ['v13', ALT.v13]] as const).map(([v, desc]) => (
+              <video key={v} data-reveal controls playsInline preload="metadata" aria-label={`Vídeo: ${desc}`} src={`/video/${v}.mp4#t=0.6`} />
+            ))}
+          </div>
+          <p className="vids-dica" aria-hidden="true" x-show="!tocou"><span>Deslize para o lado</span><i>→</i></p>
+          <div className="vids-pontos">
+            {[0, 1, 2].map(k => (
+              <button
+                key={k} type="button" aria-label={`Ir para o vídeo ${k + 1}`}
+                {...A({ 'x-on:click': `$el.parentElement.previousElementSibling.previousElementSibling.children[${k}].scrollIntoView({behavior:'smooth',inline:'start',block:'nearest'})`, 'x-bind:class': `i===${k}?'on':''`, 'x-bind:aria-current': `i===${k}` })}
+              />
+            ))}
+          </div>
         </div>
       </section>
 
