@@ -3,7 +3,7 @@ import { info } from '@/lib/info';
 
 export const metadata = {
   title: 'Cookies da Lanchonete em Itapevi',
-  description: 'Como o site do MDogão Itapevi usa o armazenamento do navegador: aviso de cookies e pedido em andamento, sem rastreamento nem publicidade.',
+  description: 'Como o site do MDogão Itapevi usa o armazenamento do navegador: aviso de cookies e pedido em andamento, sem cookies de publicidade nem rastreamento.',
 };
 
 const secoes: Secao[] = [
@@ -35,13 +35,14 @@ const secoes: Secao[] = [
       { lista: [
         '**Google Maps:** a seção "Venha nos visitar" e a página de contato incorporam um mapa do Google, carregado apenas quando você rola até ele. O Google pode definir cookies próprios, conforme a política dele.',
         '**WhatsApp e Instagram:** os links levam a sites de terceiros, com políticas próprias. Nenhum dado é enviado a eles até você clicar.',
+        '**Vercel Web Analytics:** conta visitas de forma agregada (página, origem, país, dispositivo e navegador). Funciona sem cookies e sem gravar nada no seu aparelho.',
         '**ViaCEP:** ao digitar o CEP para a entrega, o CEP é consultado nesse serviço público; ele não define cookies neste site.',
       ] },
     ],
   },
   {
     id: 'sem', titulo: 'O que não usamos',
-    blocos: ['Não usamos cookies de publicidade, de análise de acesso (como Google Analytics), de redes sociais nem pixels de rastreamento.'],
+    blocos: ['Não usamos cookies de publicidade, de redes sociais nem pixels de rastreamento. A única ferramenta de estatísticas é o Vercel Web Analytics, que não usa cookies (não usamos Google Analytics).'],
   },
   {
     id: 'gerenciar', titulo: 'Como gerenciar ou apagar',

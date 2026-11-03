@@ -34,7 +34,8 @@ const secoes: Secao[] = [
         '**Conversa no WhatsApp:** ao enviar o pedido ou a mensagem, a loja também recebe o seu número de telefone e o que você escrever na conversa.',
       ] },
       { h3: '3.2. Informações coletadas automaticamente' },
-      'Como em qualquer site, o provedor de hospedagem pode registrar dados técnicos de acesso (endereço IP, navegador, data e hora, página acessada) para segurança e funcionamento do serviço. Não usamos ferramentas de análise de acesso, publicidade nem rastreamento de comportamento.',
+      'Como em qualquer site, o provedor de hospedagem pode registrar dados técnicos de acesso (endereço IP, navegador, data e hora, página acessada) para segurança e funcionamento do serviço.',
+      'Usamos também o **Vercel Web Analytics** para saber, de forma agregada, quantas pessoas visitam o site e quais páginas são mais vistas: página acessada, origem do acesso (site de onde você veio), país, tipo de dispositivo, sistema e navegador. Essa ferramenta **não usa cookies** e não grava informações no seu aparelho nem cria um perfil para identificar você entre visitas. Não usamos publicidade nem rastreamento de comportamento.',
       { h3: '3.3. Armazenamento no seu navegador' },
       'O site guarda no seu navegador (localStorage) o aviso de cookies já fechado e o pedido em andamento, para que ele não se perca se você recarregar a página. Veja a [Política de cookies](/politica-de-cookies).',
     ],
@@ -50,6 +51,7 @@ const secoes: Secao[] = [
           ['Preencher o endereço automaticamente pelo CEP', 'CEP', 'Legítimo interesse (IX), a seu pedido'],
           ['Cumprir obrigações fiscais e legais', 'Dados do pedido', 'Cumprimento de obrigação legal (II)'],
           ['Segurança e funcionamento do site', 'Dados técnicos de acesso', 'Legítimo interesse (IX)'],
+          ['Entender o uso do site e melhorá-lo (estatísticas agregadas)', 'Página acessada, origem, país, dispositivo e navegador, sem cookies', 'Legítimo interesse (IX)'],
         ],
       } },
       'Não enviamos publicidade, newsletters nem mensagens promocionais. Só entramos em contato para tratar do seu pedido ou da sua mensagem.',
@@ -66,6 +68,7 @@ const secoes: Secao[] = [
           ['ViaCEP', 'Preencher rua, bairro e cidade a partir do CEP', 'Somente o CEP digitado (o restante do endereço não é enviado)'],
           ['Google Maps', 'Mostrar o mapa de como chegar', 'Dados técnicos de acesso e, conforme a política do Google, cookies próprios, quando o mapa é carregado'],
           ['Hospedagem do site (Vercel)', 'Publicar o site e protegê-lo contra ataques', 'Dados técnicos de acesso (IP, navegador, data e hora)'],
+          ['Vercel Web Analytics', 'Estatísticas agregadas de visitas, sem cookies', 'Página acessada, origem, país, dispositivo e navegador'],
           ['Instagram (Meta)', 'Link para o perfil da loja', 'Nenhum, até você clicar no link'],
         ],
       } },
@@ -92,7 +95,7 @@ const secoes: Secao[] = [
   {
     id: 'seguranca', titulo: 'Segurança',
     blocos: [
-      'O site usa conexão criptografada (HTTPS), cabeçalhos de segurança, não executa scripts de terceiros, não tem banco de dados de clientes e trata o que você digita sempre como texto. Mesmo assim, nenhum sistema é totalmente imune a falhas. Se você suspeitar de qualquer problema, avise pelo e-mail da seção 12.',
+      'O site usa conexão criptografada (HTTPS), cabeçalhos de segurança, não carrega scripts de publicidade, não tem banco de dados de clientes e trata o que você digita sempre como texto. Mesmo assim, nenhum sistema é totalmente imune a falhas. Se você suspeitar de qualquer problema, avise pelo e-mail da seção 12.',
     ],
   },
   {
@@ -122,7 +125,7 @@ const secoes: Secao[] = [
   },
   {
     id: 'cookies', titulo: 'Cookies e armazenamento local',
-    blocos: ['O site não usa cookies de publicidade, análise ou rastreamento próprios. Detalhes, com a lista do que é guardado no navegador, na [Política de cookies](/politica-de-cookies).'],
+    blocos: ['O site não usa cookies de publicidade nem de rastreamento; as estatísticas de visita são feitas sem cookies. Detalhes, com a lista do que é guardado no navegador, na [Política de cookies](/politica-de-cookies).'],
   },
   {
     id: 'controlador', titulo: 'Controlador e contato',

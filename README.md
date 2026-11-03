@@ -24,7 +24,7 @@ Itens com `info: true` em `lib/menu.ts` são só informativos (regras do rodízi
 **Superfície de ataque:** site sem banco de dados, login, sessão, cookies, upload nem API de escrita. Os únicos dados do cliente (pedido) ficam no navegador dele (`localStorage`) e só saem por um link `wa.me`. As únicas rotas de servidor são `GET` estáticas (`llms.txt`, `llms-full.txt`, `ai.txt`).
 
 **Já aplicado no código**
-- `next.config.ts`: CSP (`default-src 'self'`, sem scripts de terceiros, `frame-ancestors 'none'`, `form-action 'self'`, `upgrade-insecure-requests`), HSTS com preload, `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, COOP, sem `X-Powered-By`, sem source maps no navegador.
+- `next.config.ts`: CSP (`default-src 'self'`, sem scripts de publicidade (só o Vercel Web Analytics, mesma origem e sem cookies), `frame-ancestors 'none'`, `form-action 'self'`, `upgrade-insecure-requests`), HSTS com preload, `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, COOP, sem `X-Powered-By`, sem source maps no navegador.
 - Otimizador de imagens travado: sem `remotePatterns` (SSRF), `localPatterns` só para `/img/**` e o logo, poucos tamanhos permitidos, SVG desligado.
 - Cache de CDN nas mídias (`/img`, `/video`) e páginas estáticas: absorve picos de acesso.
 - `lib/carrinho.ts`: tudo que o cliente digita é sanitizado (caracteres de controle e de inversão de texto removidos), limitado em tamanho e tratado só como texto; o armazenamento local é validado ao carregar; envio com intervalo mínimo; resposta do ViaCEP tratada como não confiável.
