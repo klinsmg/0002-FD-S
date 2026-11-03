@@ -446,7 +446,11 @@ main{animation:pagein .5s cubic-bezier(.22,1,.36,1) backwards}
 .sec-vid .script{margin-bottom:4px}
 .sec-vid .vids{display:flex;justify-content:center;gap:var(--gap)}
 .sec-vid .vids video{width:min(calc((min(1180px,100vw - 40px) - 2*var(--gap))/3),calc(var(--disp)*9/16));height:auto;aspect-ratio:9/16;flex:none}
-@media(max-width:759px){.sec-vid{--gap:14px;height:auto;min-height:0;padding:40px 0}}
+@media(max-width:759px){
+  .sec-vid{--gap:20px;height:auto;min-height:0;padding:40px 0}
+  .sec-vid .vids{flex-direction:column;align-items:center}
+  .sec-vid .vids video{width:min(100%,340px)}
+}
 
 /* card "Seu pedido" compacto */
 .gaveta header{padding:10px 16px;gap:8px}
