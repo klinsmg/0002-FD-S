@@ -28,6 +28,7 @@ export default async function AdminLogin({ searchParams }: { searchParams: Promi
           <input id="a-senha" name="password" type="password" autoComplete="current-password" required maxLength={200} />
           <button className="btn btn-p" type="submit">Continuar</button>
         </form>
+        <p className="nota"><a href="/admin/senha">Definir ou recuperar senha</a></p>
       </div>
     </main>
   );
