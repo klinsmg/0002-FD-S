@@ -3,6 +3,11 @@ import { fileURLToPath } from "node:url";
 
 // Cabeçalhos de segurança. ponytail: 'unsafe-eval' é exigido pelo build padrão do Alpine.js (expressões x-*) e
 // 'unsafe-inline' pelos scripts de hidratação do Next; trocar por @alpinejs/csp + nonce se quiser uma CSP estrita.
+// Supabase: o endereço do projeto entra em connect-src só se NEXT_PUBLIC_SUPABASE_URL for um https válido (nunca texto solto na CSP).
+const supabase = (() => {
+  try { const u = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''); return u.protocol === 'https:' && u.hostname.endsWith('.supabase.co') ? u.origin : ''; } catch { return ''; }
+})();
+
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
@@ -10,7 +15,7 @@ const csp = [
   "img-src 'self' data: blob:",
   "media-src 'self'",
   "font-src 'self' data:",
-  "connect-src 'self' https://viacep.com.br",
+  `connect-src 'self' https://viacep.com.br${supabase ? ` ${supabase}` : ''}`,
   "frame-src https://www.google.com",
   "worker-src 'none'",
   "manifest-src 'self'",

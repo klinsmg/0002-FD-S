@@ -4,7 +4,7 @@ import { IAS } from '@/lib/llms';
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: [{ userAgent: '*', allow: '/' }, ...IAS.map(userAgent => ({ userAgent, allow: '/' }))],
+    rules: [{ userAgent: '*', allow: '/', disallow: ['/conta', '/admin', '/login', '/auth'] }, ...IAS.map(userAgent => ({ userAgent, allow: '/', disallow: ['/conta', '/admin', '/login', '/auth'] }))],
     sitemap: `${site}/sitemap.xml`,
     host: site,
   };

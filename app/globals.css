@@ -167,6 +167,38 @@ footer{background:var(--fundo-fundo);border-top:1px solid var(--linha);text-alig
 .contato-grid .mapa{min-height:420px}
 @media(min-width:900px){.contato-grid{grid-template-columns:1fr 1fr;gap:56px}}
 
+/* conta e login */
+.conta-caixa{max-width:640px;padding-bottom:90px}
+.conta-caixa .btn{margin-top:22px}
+.conta-tit{margin:36px 0 8px}
+.login-botoes{display:grid;justify-items:start}
+.login-botoes .nota{margin-top:12px}
+.conta-menu{display:flex;gap:6px 22px;flex-wrap:wrap;padding-top:18px}
+.conta-menu a{color:var(--creme);font-weight:700;padding:8px 0;border-bottom:2px solid transparent}
+.conta-menu a:hover{border-color:var(--destaque);color:var(--destaque)}
+.conta-acoes{display:flex;gap:14px;flex-wrap:wrap;flex-basis:100%}
+.conta-acoes a,.conta-acoes button{color:var(--destaque);background:none;border:0;padding:0;font:inherit;cursor:pointer;text-decoration:underline}
+.conta-check{display:flex;align-items:center;gap:10px}
+.form .conta-check input{width:auto}
+.conta-pedido{margin-top:28px}
+.conta-pedido .canais small{flex-basis:100%}
+.adm-caixa{padding-bottom:90px}
+.adm-kpis{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:14px}
+.adm-kpis div{background:var(--superficie);border:1px solid var(--linha);border-radius:16px;padding:18px 20px;display:grid;gap:6px}
+.adm-kpis span{color:var(--texto-fraco);font-size:14px}
+.adm-kpis b{font:400 34px var(--fonte-titulo);color:var(--creme)}
+.adm-filtro{display:flex;gap:12px 18px;flex-wrap:wrap;align-items:end;margin-bottom:22px}
+.adm-filtro label{display:grid;gap:6px;font:700 14px var(--fonte-corpo);color:var(--creme)}
+.adm-rolagem{overflow-x:auto;margin-bottom:8px}
+.adm-tab{width:100%;border-collapse:collapse;min-width:520px}
+.adm-tab th,.adm-tab td{text-align:left;padding:10px 12px;border-bottom:1px dashed var(--linha);vertical-align:top}
+.adm-tab th{color:var(--creme);font-size:14px;white-space:nowrap}
+.adm-tab a{color:var(--destaque)}
+.adm-tab .conta-acoes{flex-basis:auto}
+.form select,.adm-filtro select,.adm-filtro input{background:var(--superficie);color:var(--creme);border:1px solid var(--linha);border-radius:14px;padding:12px 14px;font:400 16px var(--fonte-corpo);min-height:44px}
+.form select{width:100%}
+.conta-total{margin-top:10px;text-align:right}
+
 @media(prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   .dot.on{animation:none}
@@ -312,7 +344,7 @@ html{color-scheme:dark}
 .linha-acoes{display:flex;align-items:center;justify-content:space-between}
 .remover{min-height:44px;padding:0 6px;background:none;border:0;color:var(--texto-fraco);text-decoration:underline;cursor:pointer;font:600 13px var(--fonte-corpo)}
 .remover:hover{color:var(--erro)}
-.linha-obs input,.nome-modal input,.dados input[type=text],.dados textarea{min-height:44px;width:100%;background:var(--fundo);color:var(--creme);border:1px solid var(--linha);border-radius:12px;padding:10px 14px;font:400 15px var(--fonte-corpo)}
+.linha-obs input,.nome-modal input,.dados input[type=text],.dados textarea,.dados select,.nome-modal select{min-height:44px;width:100%;background:var(--fundo);color:var(--creme);border:1px solid var(--linha);border-radius:12px;padding:10px 14px;font:400 15px var(--fonte-corpo)}
 .linha-obs input{min-height:44px}
 .linha-obs input:focus,.nome-modal input:focus,.dados input:focus,.dados textarea:focus{border-color:var(--destaque)}
 .dados{display:grid;gap:14px;margin-top:18px}

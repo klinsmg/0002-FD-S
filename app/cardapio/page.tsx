@@ -1,3 +1,4 @@
+import FormPedido from '@/components/FormPedido';
 import type React from 'react';
 import Image from 'next/image';
 import { cats, pais, variantes, molhos, PONTOS, SEM } from '@/lib/menu';
@@ -58,8 +59,15 @@ const LINHA = `<li x-data="{det:false}">
 const MOLHO_LI = `<li><span class="m-nome" x-text="m.n"></span><span class="m-preco" x-text="m.t || 'valor a confirmar'"></span><span class="stepper mini"><button type="button" x-bind:aria-label="'Menos ' + m.n" x-on:click="molho(m.n,-1)">−</button><output x-text="opc?.ex?.[m.n] ?? 0"></output><button type="button" x-bind:aria-label="'Mais ' + m.n" x-on:click="molho(m.n,1)">+</button></span></li>`;
 
 /* campos de endereço (usados no pop-up e no pedido); CEP preenche rua/bairro/cidade/UF */
+const OPCAO_SALVA = `<option x-bind:value="s.id" x-text="s.label + ' – ' + s.street + ', ' + s.number"></option>`;
 const campoEnd = (foco?: string) => (
   <>
+    <label x-show="salvos.length>0" x-cloak="">Endereço salvo
+      <select {...A({ 'x-model': 'salvoId', 'x-on:change': 'usarSalvo()' })}>
+        <option value="">Digitar outro endereço</option>
+        <template x-for="s in salvos" {...A({ 'x-bind:key': 's.id' })} dangerouslySetInnerHTML={{ __html: OPCAO_SALVA }} />
+      </select>
+    </label>
     <label>CEP<input type="text" inputMode="numeric" autoComplete="postal-code" maxLength={9} placeholder="00000-000" data-foco={foco} {...A({ 'x-model': 'a.cep', 'x-on:input': 'mascCep()' })} /></label>
     <p className="cep-msg" aria-live="polite" x-show="cepMsg" x-text="cepMsg" x-cloak="" />
     <label>Rua<input type="text" autoComplete="address-line1" maxLength={100} {...A({ 'x-model': 'a.rua' })} /></label>
@@ -334,10 +342,10 @@ export default function Cardapio() {
 
         <footer x-show="itens.length>0">
           <p className="total"><span>Total estimado</span><b x-text="totalTxt" /></p>
-          <p className="nota">Valores de referência. Taxa de entrega e pagamento são combinados pelo WhatsApp.</p>
+          <p className="nota">Valores de referência. Para finalizar, entre com a sua conta; taxa de entrega e pagamento são combinados pelo WhatsApp.</p>
           <p className="erro" role="alert" x-show="erro" x-text="erro" x-cloak="" />
-          <p className="ok-envio" x-show="feito" x-cloak="">Abrimos o WhatsApp com o seu pedido. É só enviar a mensagem por lá.</p>
-          <button type="button" className="btn btn-p enviar" {...A({ 'x-on:click': 'enviar()' })}>Enviar pedido pelo WhatsApp</button>
+          <FormPedido />
+          <button type="button" className="btn btn-p enviar" {...A({ 'x-on:click': 'finalizar()' })}>Finalizar pedido</button>
         </footer>
       </aside>
     </main>

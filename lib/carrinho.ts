@@ -60,7 +60,7 @@ const palavras = (t: string) => { let w = tCache.get(t); if (!w) { w = norm(t).s
 export function carrinho(cfg: Cfg): any {
   const c: any = {
     ...cfg,
-    cat: 'all', sub: 'all', q: '', itens: [] as Linha[], opc: null as any, opcErro: '', ultimoEnvio: 0, open: false, passo: '', envioPendente: false, nomeTmp: '', nomeErro: '', endErro: '', cepMsg: '', nome: '', tipo: 'retirada', tipoOk: false, a: { cep: '', rua: '', num: '', comp: '', bairro: '', cidade: '', uf: '' }, obs: '', erro: '', feito: false, abriu: null as Element | null,
+    cat: 'all', sub: 'all', q: '', itens: [] as Linha[], opc: null as any, opcErro: '', ultimoEnvio: 0, open: false, passo: '', envioPendente: false, nomeTmp: '', nomeErro: '', endErro: '', cepMsg: '', salvos: [] as any[], salvoId: '', nome: '', tipo: 'retirada', tipoOk: false, a: { cep: '', rua: '', num: '', comp: '', bairro: '', cidade: '', uf: '' }, obs: '', erro: '', feito: false, abriu: null as Element | null,
 
     // --- filtro do cardápio ---
     n(s: string) { return s.normalize('NFD').replace(/[^a-z0-9 ]/gi, '').toLowerCase(); },
@@ -88,6 +88,7 @@ export function carrinho(cfg: Cfg): any {
     // --- carrinho ---
     init() {
       this.hash();
+      this.carregarSalvos();
       try {
         const d = JSON.parse(localStorage.getItem(KEY) || '{}');
         if (Array.isArray(d.itens)) this.itens = d.itens.filter(valida).slice(0, 60).map((i: Linha) => ({ k: i.k, n: i.n, v: i.v, p: i.p, q: i.q, obs: i.obs.slice(0, 240), ponto: i.ponto, ex: i.ex }));
@@ -125,7 +126,7 @@ export function carrinho(cfg: Cfg): any {
       const p = this.faltando();
       if (p) { this.mostra(p); return; }
       this.passo = ''; this.open = true;
-      if (this.envioPendente) { this.envioPendente = false; this.enviar(); }
+      if (this.envioPendente) { this.envioPendente = false; this.finalizar(); }
     },
     abrir(el?: Element) { this.abriu = el ?? null; this.nomeTmp = this.nome; this.avancar(); },
     confirmarNome() {
@@ -235,6 +236,42 @@ export function carrinho(cfg: Cfg): any {
     brl,
     get totalTxt() { return brl(this.subtotal) + (this.pendentes ? ' + itens a confirmar' : ''); },
     linha(i: Linha) { return i.p == null ? 'valor a confirmar' : brl(this.unit(i) * i.q) + ((i.ex ?? []).some(e => e.p == null) ? ' + a confirmar' : ''); },
+
+    // --- endereços salvos da conta (só vêm se o cliente estiver logado; visitante recebe lista vazia) ---
+    async carregarSalvos() {
+      try {
+        const r = await fetch('/api/enderecos', { credentials: 'same-origin', signal: AbortSignal.timeout(7000) });
+        if (!r.ok) return;
+        const j = await r.json();
+        if (Array.isArray(j.enderecos)) this.salvos = j.enderecos.slice(0, 10);
+      } catch { /* sem rede: segue sem endereços salvos */ }
+    },
+    usarSalvo() {
+      const s = this.salvos.find((x: any) => x.id === this.salvoId); if (!s) return;
+      const t = (v: unknown) => (typeof v === 'string' ? limpa(v).slice(0, 100) : '');
+      const z = t(s.zip_code).replace(/\D/g, '').slice(0, 8);
+      Object.assign(this.a, { cep: z.length > 5 ? `${z.slice(0, 5)}-${z.slice(5)}` : z, rua: t(s.street), num: t(s.number), comp: t(s.complement), bairro: t(s.district), cidade: t(s.city), uf: t(s.state).slice(0, 2).toUpperCase() });
+      this.cepMsg = '';
+    },
+    // --- finalizar: monta o pedido e envia ao servidor (Server Action createOrder). Preços e totais são recalculados lá, no banco. ---
+    finalizar() {
+      this.erro = '';
+      if (!this.itens.length) { this.erro = 'Adicione ao menos um item.'; return; }
+      if (this.faltando()) { this.envioPendente = true; this.avancar(); return; }
+      const agora = Date.now();
+      if (agora - this.ultimoEnvio < 2500) return; // evita cliques repetidos
+      const campo = document.getElementById('payload') as HTMLInputElement | null;
+      const form = document.getElementById('form-pedido') as HTMLFormElement | null;
+      if (!campo || !form) { this.erro = 'Não foi possível enviar agora. Recarregue a página.'; return; }
+      this.ultimoEnvio = agora;
+      const a = this.a;
+      campo.value = JSON.stringify({
+        nome: limpa(this.nome), tipo: this.tipo === 'entrega' ? 'delivery' : 'pickup', obs: limpa(this.obs),
+        addr: this.tipo === 'entrega' ? { street: a.rua, number: a.num, complement: a.comp, district: a.bairro, city: a.cidade, state: a.uf, zip_code: a.cep } : null,
+        itens: (this.itens as Linha[]).map(i => ({ cat: i.k.split('|')[0], nome: i.n, variante: i.v, qtd: i.q, ponto: i.ponto ?? null, obs: i.obs, extras: (i.ex ?? []).map(e => ({ nome: e.n, qtd: e.q })) })),
+      });
+      form.requestSubmit();
+    },
 
     // --- mensagem do pedido (formato do WhatsApp: *negrito*, _itálico_) ---
     get mensagem() {
