@@ -22,7 +22,7 @@ export async function proxy(request: NextRequest) {
       },
     },
   });
-  await supabase.auth.getUser();
+  await supabase.auth.getClaims(); // renova o token se venceu; JWT conferido localmente (ES256), sem ida ao servidor de auth
   response.headers.set('Cache-Control', 'private, no-store');
   return response;
 }

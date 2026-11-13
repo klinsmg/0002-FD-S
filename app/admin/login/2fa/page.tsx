@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { adminLogado, destinoMfa } from '@/lib/admin';
 import { verificarCodigo } from '../actions';
+import BotaoEnviar from '@/components/BotaoEnviar';
 
 export const metadata = { title: 'Verificação em duas etapas', robots: { index: false, follow: false } };
 
@@ -22,7 +23,7 @@ export default async function AdminLogin2fa({ searchParams }: { searchParams: Pr
         <form className="form" action={verificarCodigo}>
           <label htmlFor="a-cod">Código</label>
           <input id="a-cod" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} required autoFocus />
-          <button className="btn btn-p" type="submit">Verificar</button>
+          <BotaoEnviar pendente="Verificando…">Verificar</BotaoEnviar>
         </form>
         <form action="/admin/logout" method="post"><button className="nota" type="submit">Cancelar e sair</button></form>
       </div>

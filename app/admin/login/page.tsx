@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { temSenha } from '@/lib/admin';
 import { createClient } from '@/lib/supabase/server';
 import { entrar } from './actions';
+import BotaoEnviar from '@/components/BotaoEnviar';
 
 export const metadata = { title: 'Entrar no painel', robots: { index: false, follow: false } };
 
@@ -27,7 +28,7 @@ export default async function AdminLogin({ searchParams }: { searchParams: Promi
           <input id="a-email" name="email" type="email" autoComplete="username" required maxLength={254} />
           <label htmlFor="a-senha">Senha</label>
           <input id="a-senha" name="password" type="password" autoComplete="current-password" required maxLength={200} />
-          <button className="btn btn-p" type="submit">Continuar</button>
+          <BotaoEnviar pendente="Entrando…">Continuar</BotaoEnviar>
         </form>
         <p className="nota"><a href="/admin/senha">Definir ou recuperar senha</a></p>
       </div>

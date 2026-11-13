@@ -1,12 +1,11 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { usuarioAtual } from '@/lib/supabase/server';
 import { PONTO, STATUS, TIPO, data, reais } from '@/lib/conta';
 
 export const metadata = { title: 'Meus pedidos' };
 
 export default async function Pedidos() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { supabase, user } = await usuarioAtual();
   if (!user) redirect('/login');
 
   // Filtra pelo dono: o RLS deixa o ADMIN ler todos os pedidos, e aqui é a área pessoal. Só os pedidos do próprio cliente (e os itens/extras deles). Limite de 100 para não pesar a página.

@@ -27,8 +27,8 @@ export async function verificarCodigo(f: FormData) {
   if (!/^\d{6}$/.test(code)) redirect('/admin/login/2fa?erro=1');
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/admin/login');
+  const { data: sessao } = await supabase.auth.getClaims(); // JWT conferido localmente, sem ida ao servidor de auth
+  if (!sessao?.claims) redirect('/admin/login');
   const { data: fatores } = await supabase.auth.mfa.listFactors();
   const fator = fatores?.totp.find(t => t.status === 'verified');
   if (!fator) redirect('/admin/seguranca');

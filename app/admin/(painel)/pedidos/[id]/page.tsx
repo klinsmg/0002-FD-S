@@ -4,6 +4,7 @@ import { PAGAMENTO, STATUS_LISTA, doisDec, exigirAdmin } from '@/lib/admin';
 import { PONTO, STATUS, TIPO, data, reais } from '@/lib/conta';
 import { atualizarPedido, definirValores } from '@/app/admin/(painel)/actions';
 import Confirmar from '@/components/Confirmar';
+import BotaoEnviar from '@/components/BotaoEnviar';
 
 export const metadata = { title: 'Pedido' };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -81,7 +82,7 @@ export default async function PedidoAdmin({ params, searchParams }: { params: Pr
           </select>
           <label htmlFor="o-obs">Observações internas / do pedido</label>
           <textarea id="o-obs" name="notes" maxLength={300} defaultValue={p.notes ?? ''} />
-          <button className="btn btn-p" type="submit">Salvar</button>
+          <BotaoEnviar pendente="Salvando…">Salvar</BotaoEnviar>
         </Confirmar>
 
         {aberto && (

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { usuarioAtual } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Minha conta', robots: { index: false, follow: false } };
 
@@ -8,7 +8,7 @@ const menu = [['Resumo', '/conta'], ['Pedidos', '/conta/pedidos'], ['Configuraç
 
 // Protege toda a área do cliente: sem sessão válida (checada no Supabase), vai para /login.
 export default async function ContaLayout({ children }: { children: React.ReactNode }) {
-  const { data: { user } } = await (await createClient()).auth.getUser();
+  const { user } = await usuarioAtual();
   if (!user) redirect('/login');
   return (
     <>

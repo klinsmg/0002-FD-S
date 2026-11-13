@@ -1,12 +1,11 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { usuarioAtual } from '@/lib/supabase/server';
 import { STATUS, cep, data, reais } from '@/lib/conta';
 
 // Resumo (só leitura): contato, endereço padrão e últimos pedidos. Tudo que se edita fica em /conta/configuracoes.
 export default async function Conta() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { supabase, user } = await usuarioAtual();
   if (!user) redirect('/login');
 
   // Filtra pelo dono: o RLS deixa o admin ler todos, e aqui é a área pessoal.

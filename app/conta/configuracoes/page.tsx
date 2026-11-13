@@ -1,19 +1,19 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { usuarioAtual } from '@/lib/supabase/server';
 import { ERROS, LIMITE_ENDERECOS, cep } from '@/lib/conta';
 import CamposEndereco from '@/components/CamposEndereco';
 import { salvarPerfil, sair } from '../actions';
 import { createAddress, deleteAddress, setDefaultAddress, updateAddress } from '../enderecos/actions';
 import Confirmar from '@/components/Confirmar';
+import BotaoEnviar from '@/components/BotaoEnviar';
 
 export const metadata = { title: 'Configurações' };
 
 // Tudo o que o cliente ajusta numa página só: perfil, endereços e segurança. Leitura aqui; gravação nas Server Actions.
 export default async function Configuracoes({ searchParams }: { searchParams: Promise<{ erro?: string; editar?: string; secao?: string }> }) {
   const { erro, editar, secao } = await searchParams;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { supabase, user } = await usuarioAtual();
   if (!user) redirect('/login');
 
   // Filtra pelo dono: o RLS deixa o admin ler todos, e aqui é a área pessoal.
@@ -45,7 +45,7 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
             <label htmlFor="p-fone">Telefone</label>
             <input id="p-fone" name="phone" type="tel" autoComplete="tel" maxLength={20} defaultValue={perfil?.phone ?? ''} placeholder="(11) 90000-0000" />
             {msg('perfil')}
-            <button className="btn btn-p" type="submit">Salvar perfil</button>
+            <BotaoEnviar pendente="Salvando…">Salvar perfil</BotaoEnviar>
           </form>
         </section>
 
@@ -86,7 +86,7 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
                 complement: atual?.complement ?? '', district: atual?.district ?? '', city: atual?.city ?? 'Itapevi', state: atual?.state ?? 'SP', reference: atual?.reference ?? '',
               }} />
               <label className="conta-check"><input type="checkbox" name="is_default" defaultChecked={atual?.is_default ?? !lista?.length} /> Usar como endereço padrão</label>
-              <button className="btn btn-p" type="submit">{atual ? 'Salvar alterações' : 'Adicionar endereço'}</button>
+              <BotaoEnviar pendente="Salvando…">{atual ? 'Salvar alterações' : 'Adicionar endereço'}</BotaoEnviar>
             </fieldset>
             {atual && <Link className="nota" href="/conta/configuracoes#enderecos">Cancelar edição</Link>}
           </form>

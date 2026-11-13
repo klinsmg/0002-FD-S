@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation';
 import SocialLoginButtons from '@/components/SocialLoginButtons';
-import { createClient } from '@/lib/supabase/server';
+import { usuarioAtual } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Entrar', description: 'Entre na sua conta MDogão com o Google para ver seus pedidos.', robots: { index: false, follow: false } };
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
   const { erro } = await searchParams;
-  const { data: { user } } = await (await createClient()).auth.getUser();
+  const { user } = await usuarioAtual();
   if (user) redirect('/conta');
 
   return (

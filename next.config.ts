@@ -61,6 +61,9 @@ const c: NextConfig = {
     contentSecurityPolicy: "default-src 'none'; script-src 'none'; sandbox;",
   },
   turbopack: { root: fileURLToPath(new URL('.', import.meta.url)) },
+  // Voltar a uma seção do painel/conta visitada há menos de 30 s é instantâneo (cache do roteador no navegador).
+  // Ações que gravam chamam revalidatePath, o que descarta esse cache na hora.
+  experimental: { staleTimes: { dynamic: 30 } },
   async headers() {
     return [
       { source: '/:path*', headers: seguranca },

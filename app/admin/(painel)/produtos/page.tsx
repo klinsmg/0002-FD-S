@@ -3,6 +3,7 @@ import { doisDec, exigirAdmin } from '@/lib/admin';
 import { reais } from '@/lib/conta';
 import { alternarProduto, excluirProduto, salvarProduto } from '@/app/admin/(painel)/actions';
 import Confirmar from '@/components/Confirmar';
+import BotaoEnviar from '@/components/BotaoEnviar';
 
 export const metadata = { title: 'Produtos' };
 const MSG: Record<string, string> = {
@@ -14,11 +15,14 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export default async function Produtos({ searchParams }: { searchParams: Promise<{ editar?: string; cat?: string; erro?: string; ok?: string }> }) {
   const { editar, cat, erro, ok } = await searchParams;
   const { supabase } = await exigirAdmin();
-  const { data: cats } = await supabase.from('categories').select('id, name').order('sort_order');
-  let q = supabase.from('products').select('*').order('sort_order').order('name').limit(300);
+  let q = supabase.from('products').select('id, name, group_label, category_id, price_cents, active').order('sort_order').order('name').limit(300);
   if (cat && UUID.test(cat)) q = q.eq('category_id', cat);
-  const { data: prods } = await q;
-  const atual = editar && UUID.test(editar) ? (await supabase.from('products').select('*').eq('id', editar).maybeSingle()).data : null;
+  // as três consultas em paralelo (antes eram em sequência)
+  const [{ data: cats }, { data: prods }, { data: atual }] = await Promise.all([
+    supabase.from('categories').select('id, name').order('sort_order'),
+    q,
+    editar && UUID.test(editar) ? supabase.from('products').select('*').eq('id', editar).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
   const nomeCat = new Map(cats?.map(c => [c.id, c.name]));
 
   return (
@@ -85,7 +89,7 @@ export default async function Produtos({ searchParams }: { searchParams: Promise
           <label className="conta-check"><input type="checkbox" name="active" defaultChecked={atual?.active ?? true} /> Ativo (aparece para o público)</label>
           <label className="conta-check"><input type="checkbox" name="requires_doneness" defaultChecked={atual?.requires_doneness ?? true} /> Exige ponto da carne</label>
           <label className="conta-check"><input type="checkbox" name="is_informational" defaultChecked={atual?.is_informational ?? false} /> Só informativo (não vira item de pedido)</label>
-          <button className="btn btn-p" type="submit">{atual ? 'Salvar alterações' : 'Criar produto'}</button>
+          <BotaoEnviar pendente="Salvando…">{atual ? 'Salvar alterações' : 'Criar produto'}</BotaoEnviar>
           {atual && <Link className="nota" href="/admin/produtos">Cancelar edição</Link>}
         </form>
       </div>

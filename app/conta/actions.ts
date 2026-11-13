@@ -1,14 +1,13 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, usuarioAtual } from '@/lib/supabase/server';
 import { limpa } from '@/lib/conta';
 
 // Todas as ações: exigem sessão válida e usam o cliente do USUÁRIO (chave publishable + RLS), nunca a service role.
 // Além do RLS, cada escrita filtra por user_id.
 async function logado() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { supabase, user } = await usuarioAtual();
   if (!user) redirect('/login');
   return { supabase, user };
 }

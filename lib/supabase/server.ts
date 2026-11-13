@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createServerClient } from '@supabase/ssr';
 import type { Database } from '@/lib/database.types';
 import { cookies } from 'next/headers';
@@ -29,3 +30,13 @@ export async function createClient() {
     },
   });
 }
+
+// Quem está logado nesta requisição. getClaims confere a assinatura do JWT localmente (chave ES256 do projeto), sem ida ao
+// servidor de auth; cache() faz layout, página e ações da mesma requisição dividirem a checagem. O RLS do banco confere o mesmo JWT.
+// Limite: sessão encerrada em outro aparelho vale até o JWT vencer (até 1 h).
+export const usuarioAtual = cache(async () => {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const c = data?.claims;
+  return { supabase, user: c ? { id: c.sub, email: c.email ?? '', app_metadata: c.app_metadata } : null };
+});

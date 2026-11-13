@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { exigirAdmin } from '@/lib/admin';
 import { alternarCategoria, excluirCategoria, salvarCategoria } from '@/app/admin/(painel)/actions';
 import Confirmar from '@/components/Confirmar';
+import BotaoEnviar from '@/components/BotaoEnviar';
 
 export const metadata = { title: 'Categorias' };
 const MSG: Record<string, string> = {
@@ -66,7 +67,7 @@ export default async function Categorias({ searchParams }: { searchParams: Promi
           <label htmlFor="c-ord">Ordem</label>
           <input id="c-ord" name="sort_order" type="number" min={0} max={99999} defaultValue={atual?.sort_order ?? 0} />
           <label className="conta-check"><input type="checkbox" name="active" defaultChecked={atual?.active ?? true} /> Ativa (aparece para o público)</label>
-          <button className="btn btn-p" type="submit">{atual ? 'Salvar alterações' : 'Criar categoria'}</button>
+          <BotaoEnviar pendente="Salvando…">{atual ? 'Salvar alterações' : 'Criar categoria'}</BotaoEnviar>
           {atual && <Link className="nota" href="/admin/categorias">Cancelar edição</Link>}
         </form>
       </div>

@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { LIMITE_ENDERECOS, limpa } from '@/lib/conta';
-import { createClient } from '@/lib/supabase/server';
+import { usuarioAtual } from '@/lib/supabase/server';
 
 // Endereços do cliente. Cada ação exige sessão, usa o cliente do USUÁRIO (RLS) e ainda filtra por user_id.
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -13,8 +13,7 @@ const erroEm = (codigo: string, extra = '') => `${LISTA}?secao=enderecos&erro=${
 function atualizar() { revalidatePath(LISTA); revalidatePath('/conta'); }
 
 async function logado() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { supabase, user } = await usuarioAtual();
   if (!user) redirect('/login');
   return { supabase, user };
 }
