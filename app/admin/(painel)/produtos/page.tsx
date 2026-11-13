@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { doisDec, exigirAdmin } from '@/lib/admin';
 import { reais } from '@/lib/conta';
 import { alternarProduto, excluirProduto, salvarProduto } from '@/app/admin/(painel)/actions';
+import Confirmar from '@/components/Confirmar';
 
 export const metadata = { title: 'Produtos' };
 const MSG: Record<string, string> = {
@@ -52,8 +53,8 @@ export default async function Produtos({ searchParams }: { searchParams: Promise
                   <td>{p.active ? 'Sim' : 'Não'}</td>
                   <td className="conta-acoes">
                     <Link href={`/admin/produtos?editar=${p.id}${cat ? `&cat=${cat}` : ''}`}>Editar</Link>
-                    <form action={alternarProduto}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="active" value={p.active ? '0' : '1'} /><button type="submit">{p.active ? 'Desativar' : 'Ativar'}</button></form>
-                    <form action={excluirProduto}><input type="hidden" name="id" value={p.id} /><button type="submit">Excluir</button></form>
+                    <Confirmar action={alternarProduto} quando={{ campo: 'active', valor: '0' }} mensagem={`Desativar o produto ${p.name}?`} detalhe="Ele some do cardápio e não pode ser pedido até você ativar de novo." rotulo="Desativar"><input type="hidden" name="id" value={p.id} /><input type="hidden" name="active" value={p.active ? '0' : '1'} /><button type="submit">{p.active ? 'Desativar' : 'Ativar'}</button></Confirmar>
+                    <Confirmar action={excluirProduto} mensagem={`Excluir o produto ${p.name}?`} detalhe="Essa ação não pode ser desfeita. Pedidos antigos continuam com o nome do produto." rotulo="Excluir"><input type="hidden" name="id" value={p.id} /><button type="submit">Excluir</button></Confirmar>
                   </td>
                 </tr>
               ))}

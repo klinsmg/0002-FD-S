@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { exigirAdmin } from '@/lib/admin';
 import { alternarCategoria, excluirCategoria, salvarCategoria } from '@/app/admin/(painel)/actions';
+import Confirmar from '@/components/Confirmar';
 
 export const metadata = { title: 'Categorias' };
 const MSG: Record<string, string> = {
@@ -35,8 +36,8 @@ export default async function Categorias({ searchParams }: { searchParams: Promi
                   <td>{c.sort_order}</td><td>{c.name}</td><td>{c.slug}</td><td>{c.active ? 'Sim' : 'Não'}</td>
                   <td className="conta-acoes">
                     <Link href={`/admin/categorias?editar=${c.id}`}>Editar</Link>
-                    <form action={alternarCategoria}><input type="hidden" name="id" value={c.id} /><input type="hidden" name="active" value={c.active ? '0' : '1'} /><button type="submit">{c.active ? 'Desativar' : 'Ativar'}</button></form>
-                    <form action={excluirCategoria}><input type="hidden" name="id" value={c.id} /><button type="submit">Excluir</button></form>
+                    <Confirmar action={alternarCategoria} quando={{ campo: 'active', valor: '0' }} mensagem={`Desativar a categoria ${c.name}?`} detalhe="Todos os produtos dela somem do cardápio até você ativar de novo." rotulo="Desativar"><input type="hidden" name="id" value={c.id} /><input type="hidden" name="active" value={c.active ? '0' : '1'} /><button type="submit">{c.active ? 'Desativar' : 'Ativar'}</button></Confirmar>
+                    <Confirmar action={excluirCategoria} mensagem={`Excluir a categoria ${c.name}?`} detalhe="Essa ação não pode ser desfeita. Só categorias sem produtos podem ser excluídas." rotulo="Excluir"><input type="hidden" name="id" value={c.id} /><button type="submit">Excluir</button></Confirmar>
                   </td>
                 </tr>
               ))}

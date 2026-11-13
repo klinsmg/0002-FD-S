@@ -301,10 +301,19 @@ export default function Cardapio() {
 
       {/* gaveta do pedido */}
       <div className="gaveta-fundo" x-show="open" x-cloak="" {...A({ 'x-on:click': 'open=false' })} />
+      {/* confirmação do "Limpar" (mesmo visual do components/Confirmar.tsx); fora da gaveta para o trap de Tab não interferir */}
+      <dialog className="confirmar" x-ref="dlgLimpar" aria-labelledby="dlg-limpar-t" aria-describedby="dlg-limpar-d" {...A({ 'x-on:keydown.escape.stop': '$el.close()' })}>
+        <p className="confirmar-tit" id="dlg-limpar-t">Limpar o pedido?</p>
+        <p className="confirmar-det" id="dlg-limpar-d">Todos os itens e observações saem do seu pedido.</p>
+        <div className="confirmar-acoes">
+          <button type="button" className="btn btn-o" autoFocus {...A({ 'x-on:click': '$refs.dlgLimpar.close()' })}>Cancelar</button>
+          <button type="button" className="btn btn-perigo" {...A({ 'x-on:click': 'limpar(); $refs.dlgLimpar.close()' })}>Limpar pedido</button>
+        </div>
+      </dialog>
       <aside className="gaveta" role="dialog" aria-modal="true" aria-labelledby="gaveta-tit" x-show="open" x-cloak="" {...A({ 'x-on:keydown.tab': 'trap($event)' })}>
         <header>
           <h2 id="gaveta-tit">Seu pedido</h2>
-          <button type="button" className="limpar limpar-top" x-show="itens.length>0" x-cloak="" {...A({ 'x-on:click': 'limpar()' })}>Limpar</button>
+          <button type="button" className="limpar limpar-top" x-show="itens.length>0" x-cloak="" {...A({ 'x-on:click': '$refs.dlgLimpar.showModal()' })}>Limpar</button>
           <button type="button" className="fechar" aria-label="Fechar pedido" x-ref="fechar" {...A({ 'x-on:click': 'open=false' })}>×</button>
         </header>
 

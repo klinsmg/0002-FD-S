@@ -25,6 +25,16 @@ p{margin:0 0 16px}
 .btn-p{background:var(--primaria);color:var(--branco);box-shadow:0 8px 24px -8px color-mix(in srgb,var(--primaria) 70%,transparent)}
 .btn-p:hover{background:var(--primaria-hover);transform:translateY(-2px)}
 .btn-o{border-color:var(--destaque);color:var(--destaque)}
+.btn-perigo{background:var(--erro);color:var(--branco)}
+.btn-perigo:hover{background:color-mix(in srgb,var(--erro) 85%,var(--branco))}
+/* modal de confirmação (components/Confirmar.tsx e o "Limpar" do cardápio) */
+.confirmar{margin:auto;width:min(440px,calc(100% - 32px));border:1px solid var(--linha);border-radius:var(--raio);background:var(--superficie);color:var(--texto);padding:24px;box-shadow:0 24px 60px -20px var(--sombra)}
+.confirmar::backdrop{background:color-mix(in srgb,var(--sombra) 70%,transparent)}
+.confirmar-tit{margin:0 0 8px;font:700 19px/1.35 var(--fonte-corpo);color:var(--creme)}
+.confirmar-det{margin:0;font-size:15px;color:var(--texto-fraco)}
+.confirmar-acoes{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;margin-top:22px}
+.confirmar-acoes .btn{margin:0;min-height:44px;padding:0 20px}
+@media(max-width:420px){.confirmar{padding:20px}.confirmar-acoes .btn{flex:1 1 0;padding:0 10px;font-size:14px;letter-spacing:0}}
 .btn-o:hover{background:var(--destaque);color:var(--fundo);transform:translateY(-2px)}
 .btn:active{transform:translateY(1px)}
 

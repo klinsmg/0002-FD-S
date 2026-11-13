@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { ERROS, cep } from '@/lib/conta';
 import { salvarPerfil, sair } from '../actions';
 import { createAddress, deleteAddress, setDefaultAddress, updateAddress } from '../enderecos/actions';
+import Confirmar from '@/components/Confirmar';
 
 export const metadata = { title: 'Configurações' };
 
@@ -61,7 +62,7 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
                   <span className="conta-acoes">
                     <Link href={`/conta/configuracoes?editar=${a.id}#enderecos`}>Editar</Link>
                     {!a.is_default && <form action={setDefaultAddress}><input type="hidden" name="id" value={a.id} /><button type="submit">Tornar padrão</button></form>}
-                    <form action={deleteAddress}><input type="hidden" name="id" value={a.id} /><button type="submit">Remover</button></form>
+                    <Confirmar action={deleteAddress} mensagem={`Remover o endereço ${a.street}, ${a.number}?`} detalhe={`"${a.label}" sai da sua lista de endereços.`} rotulo="Remover"><input type="hidden" name="id" value={a.id} /><button type="submit">Remover</button></Confirmar>
                   </span>
                 </li>
               ))}

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { PAGAMENTO, STATUS_LISTA, doisDec, exigirAdmin } from '@/lib/admin';
 import { PONTO, STATUS, TIPO, data, reais } from '@/lib/conta';
 import { atualizarPedido, definirValores } from '@/app/admin/(painel)/actions';
+import Confirmar from '@/components/Confirmar';
 
 export const metadata = { title: 'Pedido' };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -65,7 +66,9 @@ export default async function PedidoAdmin({ params, searchParams }: { params: Pr
         </p>
 
         <h2 className="conta-tit">Status e pagamento</h2>
-        <form className="form" action={atualizarPedido}>
+        {/* cancelar o pedido pede confirmação (só quando muda PARA cancelado) */}
+        <Confirmar className="form" action={atualizarPedido} quando={{ campo: 'status', valor: p.status === 'cancelled' ? '__nunca__' : 'cancelled' }}
+          mensagem={`Cancelar o pedido #${p.order_number}?`} detalhe="O cliente vê o pedido como cancelado e ele sai do faturamento." rotulo="Cancelar pedido">
           <input type="hidden" name="id" value={p.id} />
           <label htmlFor="o-status">Status</label>
           <select id="o-status" name="status" defaultValue={p.status}>
@@ -79,7 +82,7 @@ export default async function PedidoAdmin({ params, searchParams }: { params: Pr
           <label htmlFor="o-obs">Observações internas / do pedido</label>
           <textarea id="o-obs" name="notes" maxLength={300} defaultValue={p.notes ?? ''} />
           <button className="btn btn-p" type="submit">Salvar</button>
-        </form>
+        </Confirmar>
 
         {aberto && (
           <>
