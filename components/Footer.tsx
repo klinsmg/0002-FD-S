@@ -26,12 +26,12 @@ export default function Footer() {
       <div className="nav1">{nav.map(([t, h]) => <Link key={h} href={h}>{t}</Link>)}</div>
       <div className="nav2">
         <Link href="/politica-de-privacidade">Política de privacidade</Link>
-        <Link href="/politica-de-cookies">Cookies</Link>
         <Link href="/termos-de-uso">Termos de uso</Link>
+        <Link href="/politica-de-cookies">Política de cookies</Link>
       </div>
       <p className="end">{info.rua} · {info.bairro}<br />{info.horarios.map(([d, h]) => `${d}: ${h}`).join(' · ')}</p>
       <div className="legal-row">
-        <p className="legal">© {new Date().getFullYear()} MDogão Itapevi · Desde 1995. Imagens do acervo do restaurante.</p>
+        <p className="legal">© {new Date().getFullYear()} MDogão Itapevi · Desde 1995.</p>
         <small className="credito">MakeByKlinsmann</small>
       </div>
     </footer>

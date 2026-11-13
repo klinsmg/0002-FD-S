@@ -694,7 +694,14 @@ address,.hor,.end,.canais,.sel{-webkit-user-select:text;user-select:text}
 
 /* 404 cabe inteira na tela, sem rolagem: o rodapé vira só a linha jurídica e o conteúdo encolhe pela altura da janela */
 /* na 404 o cabeçalho fica só com a logo (sem menu, botão do WhatsApp nem menu mobile) */
-body:has(.nf) .topo>:not(.marca),body:has(.nf) #menu-mobile{display:none!important}
+/* 404: sem cabeçalho (a logo fica no topo da própria página); rodapé só com os links jurídicos e o copyright à esquerda */
+body:has(.nf) .topo-wrap{display:none!important}
+.nf{flex-direction:column;align-items:flex-start}
+.nf-logo{position:relative;z-index:2;align-self:center;display:block;line-height:0}
+.nf-logo img{width:clamp(52px,9svh,72px);height:auto}
+.nf-txt{margin-block:auto}
+body:has(.nf) .legal-row{align-items:flex-start;margin-top:6px}
+body:has(.nf) .legal-row .legal{text-align:left;padding-left:0}
 body:has(.nf) footer{padding:10px 16px 14px}
 body:has(.nf) footer>:not(.nav2):not(.legal-row),body:has(.nf) .credito{display:none}
 body:has(.nf) footer .nav2{margin-bottom:0}
@@ -706,7 +713,7 @@ body:has(.nf) #conteudo{flex:1;display:flex;flex-direction:column}
 .nf h1{font-size:clamp(26px,min(5vw,6svh),58px);margin:clamp(4px,1svh,8px) 0 clamp(6px,1.4svh,12px)}
 .nf-sub{font-size:clamp(15px,min(1.6vw,2.3svh),19px)}
 .nf-acoes{margin-top:clamp(12px,3svh,26px)}
-@media(max-height:600px){body:has(.nf) .legal-row{display:none}.nf-num{font-size:52px}}
+@media(max-height:600px){.nf-num{font-size:52px}}
 @media(max-width:600px){.nf-acoes{flex-wrap:nowrap}.nf-acoes .btn{flex:1 1 0;min-width:0;justify-content:center;padding-inline:10px;font-size:14px;white-space:nowrap}}
 @media(max-width:359px){.nf-acoes{gap:8px}.nf-acoes .btn{font-size:12px;padding-inline:6px;letter-spacing:0}}
 

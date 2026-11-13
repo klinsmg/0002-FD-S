@@ -14,8 +14,8 @@ export default function SemRodape({ children }: { children: React.ReactNode }) {
     <footer className="rodape-min">
       <nav className="nav2" aria-label="Links jurídicos">
         <Link href="/politica-de-privacidade">Política de privacidade</Link>
-        <Link href="/politica-de-cookies">Cookies</Link>
         <Link href="/termos-de-uso">Termos de uso</Link>
+        <Link href="/politica-de-cookies">Política de cookies</Link>
       </nav>
       <p className="legal">© {new Date().getFullYear()} MDogão Itapevi</p>
     </footer>

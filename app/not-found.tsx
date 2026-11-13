@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import Logo from '@/components/Logo';
 
 export const metadata = { title: 'Página não encontrada' };
 
@@ -7,6 +8,8 @@ export const metadata = { title: 'Página não encontrada' };
 export default function NotFound() {
   return (
     <main className="nf">
+      {/* sem o cabeçalho do site: só a logo, centralizada no topo */}
+      <Link className="nf-logo" href="/" aria-label="MDogão Itapevi, início"><Logo size={72} priority /></Link>
       <div className="nf-txt">
         <p className="script">ops, esse prato não saiu da cozinha</p>
         <p className="nf-num" aria-hidden="true">404</p>
