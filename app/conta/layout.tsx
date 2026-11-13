@@ -12,7 +12,7 @@ export default async function ContaLayout({ children }: { children: React.ReactN
   if (!user) redirect('/login');
   return (
     <div className="area">
-      <MenuArea itens={menu} rotulo="Minha conta" />
+      <MenuArea itens={menu} rotulo="Minha conta" completo />
       {children}
     </div>
   );
