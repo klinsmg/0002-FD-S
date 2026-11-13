@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 import { usuarioAtual } from '@/lib/supabase/server';
 import MenuArea from '@/components/MenuArea';
+import ConviteAvaliacao from '@/components/ConviteAvaliacao';
+import { avaliarNoGoogle } from '@/lib/info';
 
 export const metadata = { title: 'Minha conta', robots: { index: false, follow: false } };
 
@@ -14,6 +16,7 @@ export default async function ContaLayout({ children }: { children: React.ReactN
     <div className="area">
       <MenuArea itens={menu} rotulo="Minha conta" completo />
       {children}
+      <ConviteAvaliacao google={avaliarNoGoogle} />
     </div>
   );
 }

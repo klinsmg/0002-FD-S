@@ -1,6 +1,6 @@
-import { info } from '@/lib/info';
+import { mapaEmbed } from '@/lib/info';
 
-// Mapa incorporado, só carrega ao rolar até ele (loading=lazy).
+// Mapa incorporado (Maps Embed API quando há chave em NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY), só carrega ao rolar até ele.
 export default function Mapa() {
   return (
     <iframe
@@ -9,7 +9,7 @@ export default function Mapa() {
       loading="lazy"
       referrerPolicy="strict-origin-when-cross-origin"
       sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-      src={`https://www.google.com/maps?q=${encodeURIComponent(`${info.rua}, ${info.bairro}`)}&output=embed`}
+      src={mapaEmbed}
     />
   );
 }

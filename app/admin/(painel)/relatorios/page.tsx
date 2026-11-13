@@ -6,11 +6,15 @@ export const metadata = { title: 'Relatórios' };
 // Só leitura das views (sales_summary, monthly_sales, best_selling_products): nenhuma conta de relatório é refeita aqui.
 export default async function Relatorios() {
   const { supabase } = await exigirAdmin();
-  const [{ data: dias }, { data: meses }, { data: top }] = await Promise.all([
+  const [{ data: dias }, { data: meses }, { data: top }, { data: avals }] = await Promise.all([
     supabase.from('sales_summary').select('*').order('sale_date', { ascending: false }).limit(31),
     supabase.from('monthly_sales').select('*').order('month', { ascending: false }).limit(24),
     supabase.from('best_selling_products').select('*').order('units_sold', { ascending: false }).limit(20),
+    // ponytail: média calculada sobre as 500 mais recentes; trocar por uma view se passar disso
+    supabase.from('reviews').select('rating, comment, google_clicked_at, created_at').order('created_at', { ascending: false }).limit(500),
   ]);
+  const media = avals?.length ? avals.reduce((a, x) => a + x.rating, 0) / avals.length : 0;
+  const noGoogle = avals?.filter(x => x.google_clicked_at).length ?? 0;
 
   return (
     <main>
@@ -51,6 +55,18 @@ export default async function Relatorios() {
           </table>
         </div>
         <p className="nota">Receita por produto = preço × quantidade, sem extras, taxa de entrega nem desconto.</p>
+
+        <h2 className="conta-tit">Avaliações dos clientes</h2>
+        {avals?.length ? (
+          <>
+            <p className="nota">Nota média <b>{media.toFixed(1).replace('.', ',')} / 5</b> em {avals.length} avaliação{avals.length > 1 ? 'ões' : ''} · {noGoogle} clicaram em “Publicar no Google” (o clique não garante que publicaram).</p>
+            <ul className="canais">
+              {avals.slice(0, 10).map(a => (
+                <li key={a.created_at}><b>{'★'.repeat(a.rating)}{'☆'.repeat(5 - a.rating)}</b><span>{new Date(a.created_at).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</span>{a.comment && <small className="nota" style={{ flexBasis: '100%' }}>“{a.comment}”</small>}</li>
+              ))}
+            </ul>
+          </>
+        ) : <p className="nota">Ainda sem avaliações. O convite aparece para clientes com 3 ou mais pedidos entregues.</p>}
       </div>
     </main>
   );

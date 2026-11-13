@@ -3,6 +3,8 @@ import { notFound, redirect } from 'next/navigation';
 import LimparCarrinho from '@/components/LimparCarrinho';
 import { usuarioAtual } from '@/lib/supabase/server';
 import AtualizarSozinho from '@/components/AtualizarSozinho';
+import ConviteAvaliacao from '@/components/ConviteAvaliacao';
+import { avaliarNoGoogle } from '@/lib/info';
 import { PONTO, STATUS, TIPO, data, reais } from '@/lib/conta';
 
 export const metadata = { title: 'Seu pedido', robots: { index: false, follow: false } };
@@ -34,6 +36,7 @@ export default async function Pedido({ params }: { params: Promise<{ id: string 
     <main>
       <LimparCarrinho />
       {!encerrado && <AtualizarSozinho segundos={30} />}
+      {p.status === 'delivered' && <ConviteAvaliacao google={avaliarNoGoogle} />}
       <header className="pg-cab wrap">
         <p className="script">pedido recebido</p>
         <h1>Pedido <em>#{p.order_number}</em></h1>

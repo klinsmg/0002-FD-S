@@ -889,3 +889,26 @@ body:has(.cupons){background:#fff}
   .dash-card{overflow:hidden}
   .dash-graf{min-height:0}
 }
+
+/* ===== convite de avaliação (pop-up do cliente) ===== */
+.aval{position:relative;width:min(460px,calc(100% - 32px))}
+.aval-x{position:absolute;top:8px;right:8px;width:44px;height:44px;border:0;border-radius:50%;background:none;font-size:28px;line-height:1;color:var(--texto-fraco);cursor:pointer}
+.aval-x:hover{color:var(--creme);background:var(--fundo)}
+.aval .confirmar-tit{padding-right:36px}
+.aval-estrelas{display:flex;align-items:center;gap:2px;margin:16px 0 4px;padding:0;border:0}
+.aval-estrelas legend{margin-bottom:4px;font-weight:700;color:var(--creme);font-size:15px}
+.aval-estrelas label{position:relative;display:grid;place-items:center;width:46px;height:46px;cursor:pointer;font-size:34px;line-height:1;color:var(--linha);transition:transform .12s,color .12s}
+.aval-estrelas label.on{color:var(--destaque)}
+.aval-estrelas label:hover{transform:scale(1.12)}
+.aval-estrelas input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.aval-estrelas label:has(input:focus-visible){outline:2px solid var(--destaque);outline-offset:2px;border-radius:10px}
+.aval-estrelas output{margin-left:8px;font-weight:700;color:var(--creme)}
+.aval-lbl{display:block;margin:12px 0 6px;font-weight:700;color:var(--creme);font-size:15px}
+.aval textarea{width:100%;background:var(--fundo);color:var(--creme);border:1px solid var(--linha);border-radius:12px;padding:12px 14px;font:400 16px var(--fonte-corpo);resize:vertical}
+.aval textarea:focus{border-color:var(--destaque)}
+.aval-erro{margin:8px 0 0;color:var(--erro);font-weight:600}
+.aval-copia{margin:10px 0}
+@media(prefers-reduced-motion:reduce){.aval-estrelas label{transition:none}}
+.aval-estrelas output{white-space:nowrap}
+.aval .confirmar-det+.confirmar-det{margin-top:8px}
+@media(max-width:420px){.aval-estrelas label{width:40px;height:44px;font-size:30px}}

@@ -486,6 +486,76 @@ export type Database = {
         }
         Relationships: []
       }
+      review_prompts: {
+        Row: {
+          created_at: string
+          order_id: string
+          outcome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          order_id: string
+          outcome?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          order_id?: string
+          outcome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_prompts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          google_clicked_at: string | null
+          id: string
+          order_id: string | null
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          google_clicked_at?: string | null
+          id?: string
+          order_id?: string | null
+          rating: number
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          google_clicked_at?: string | null
+          id?: string
+          order_id?: string | null
+          rating?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sections: {
         Row: {
           active: boolean
@@ -652,6 +722,19 @@ export type Database = {
         }[]
       }
       is_admin: { Args: never; Returns: boolean }
+      review_decline: { Args: { p_order_id: string }; Returns: undefined }
+      review_google_click: { Args: never; Returns: undefined }
+      review_invite: {
+        Args: never
+        Returns: {
+          order_id: string
+          order_number: number
+        }[]
+      }
+      review_submit: {
+        Args: { p_comment: string; p_order_id: string; p_rating: number }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "customer" | "admin"

@@ -15,3 +15,13 @@ export const info = {
 };
 export const wa = (msg = 'Olá! Vim pelo site do MDogão Itapevi.') => `https://wa.me/${info.wa}?text=${encodeURIComponent(msg)}`;
 export const mapa = `https://www.google.com/maps?q=${encodeURIComponent(`${info.rua}, ${info.bairro}`)}`;
+
+// Google (variáveis em .env.local / Vercel). Place ID validado: só letras, números, _ e - (nada vai cru para a URL).
+const placeId = /^[A-Za-z0-9_-]{10,300}$/.test(process.env.NEXT_PUBLIC_GOOGLE_PLACE_ID ?? '') ? process.env.NEXT_PUBLIC_GOOGLE_PLACE_ID! : '';
+const chaveMapa = /^[A-Za-z0-9_-]{20,100}$/.test(process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY ?? '') ? process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY! : '';
+// Link oficial para o cliente escrever a avaliação no Google (vazio sem Place ID: o botão não aparece)
+export const avaliarNoGoogle = placeId ? `https://search.google.com/local/writereview?placeid=${placeId}` : '';
+// Mapa: Maps Embed API com o Place ID (ou o endereço); sem chave, o mapa simples de antes
+export const mapaEmbed = chaveMapa
+  ? `https://www.google.com/maps/embed/v1/place?key=${chaveMapa}&q=${placeId ? `place_id:${placeId}` : encodeURIComponent(`${info.rua}, ${info.bairro}`)}&language=pt-BR`
+  : `https://www.google.com/maps?q=${encodeURIComponent(`${info.rua}, ${info.bairro}`)}&output=embed`;
