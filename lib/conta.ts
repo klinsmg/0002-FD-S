@@ -1,7 +1,7 @@
 // Auxiliares da área do cliente (/conta): formatação e limpeza de texto. Sem acesso a banco.
 export const STATUS: Record<string, string> = {
   pending: 'Recebido', confirmed: 'Confirmado', preparing: 'Em preparo', ready: 'Pronto',
-  delivered: 'Entregue', cancelled: 'Cancelado',
+  out_for_delivery: 'Saiu para entrega', delivered: 'Entregue', cancelled: 'Cancelado',
 };
 export const PONTO: Record<string, string> = { rare: 'Mal passado', medium: 'Ao ponto', well_done: 'Bem passado' };
 export const TIPO: Record<string, string> = { pickup: 'Retirada', delivery: 'Entrega' };

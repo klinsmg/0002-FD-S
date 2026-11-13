@@ -36,7 +36,7 @@ export default async function PedidoAdmin({ params, searchParams }: { params: Pr
         <p>{data(p.created_at)} · {TIPO[p.order_type] ?? p.order_type} · {STATUS[p.status]}</p>
       </header>
       <div className="wrap adm-caixa">
-        <p className="nota"><Link href="/admin/pedidos">← Voltar aos pedidos</Link></p>
+        <p className="nota"><Link href="/admin/pedidos">← Voltar aos pedidos</Link> · <Link href="/admin/loja">Quadro da loja</Link> · <a href={`/admin/imprimir/${p.id}`} target="_blank" rel="noopener">Imprimir</a></p>
         {ok && <p className="nota" role="status">Salvo.</p>}
         {erro && MSG[erro] && <p className="nota" role="alert">{MSG[erro]}</p>}
 

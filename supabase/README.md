@@ -7,7 +7,7 @@
 | `lib/supabase/server.ts` | único cliente: Server Components/Actions/rotas (cookies httpOnly, tipado). Não há cliente no navegador |
 | `lib/supabase/sessao.ts` | opções dos cookies de sessão e "manter conectado" |
 | `lib/database.types.ts` | tipos gerados do banco |
-| `supabase/migrations/001…009` | esquema (001–007) e cardápio inicial (008) |
+| `supabase/migrations/001…010` | esquema (001–007) e cardápio inicial (008) |
 | `supabase/scripts/admin_bootstrap.sql` | promove o primeiro admin (manual, NÃO é migração) |
 | `.env.example` | modelo das variáveis (sem valores) |
 

@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { PAGAMENTO, STATUS_LISTA, exigirAdmin, paraCentavos, type Status } from '@/lib/admin';
+import { PAGAMENTO, STATUS_LISTA, exigirAdmin, paraCentavos, podeIr, type Status } from '@/lib/admin';
 import { limpa } from '@/lib/conta';
 
 // Mutações do painel. Todas começam por exigirAdmin() e usam o cliente do USUÁRIO (RLS), nunca a service role.
@@ -23,6 +23,21 @@ export async function atualizarPedido(f: FormData) {
   if (error) redirect(`/admin/pedidos/${id}?erro=falha`);
   atualizar('/admin', '/admin/pedidos', `/admin/pedidos/${id}`, '/admin/relatorios', '/conta', '/conta/pedidos', `/pedido/${id}`);
   redirect(`/admin/pedidos/${id}?ok=1`);
+}
+
+// Quadro da loja: avança o pedido um passo. Regra do fluxo (PROXIMOS) conferida aqui, com o status atual lido do banco;
+// o update só vale se o status ainda for o lido (dois aparelhos clicando ao mesmo tempo não pulam etapas).
+export async function moverPedido(f: FormData) {
+  const { supabase } = await exigirAdmin();
+  const id = idDe(f);
+  const para = String(f.get('para') ?? '') as Status;
+  if (!id || !STATUS_LISTA.includes(para)) redirect('/admin/loja?erro=invalido');
+  const { data: p } = await supabase.from('orders').select('status, order_type').eq('id', id).maybeSingle();
+  if (!p || !podeIr(p.status, para, p.order_type)) redirect('/admin/loja?erro=fluxo');
+  const { data: ok } = await supabase.from('orders').update({ status: para }).eq('id', id).eq('status', p.status).select('id');
+  if (!ok?.length) redirect('/admin/loja?erro=fluxo');
+  atualizar('/admin', '/admin/loja', '/admin/pedidos', `/admin/pedidos/${id}`, '/admin/relatorios', '/conta', '/conta/pedidos', `/pedido/${id}`);
+  redirect('/admin/loja');
 }
 
 // taxa de entrega e desconto: único caminho é a função admin_set_order_amounts (só pedido aberto); o total é recalculado no banco

@@ -4,7 +4,26 @@ import { createClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/database.types';
 
 export type Status = Database['public']['Enums']['order_status'];
-export const STATUS_LISTA: Status[] = ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'];
+export const STATUS_LISTA: Status[] = ['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled'];
+
+// Fluxo da loja: para onde cada status pode ir (conferido no servidor antes de gravar). "Saiu para entrega" só em pedido de entrega.
+export const PROXIMOS: Record<Status, Status[]> = {
+  pending: ['confirmed', 'preparing', 'cancelled'],
+  confirmed: ['preparing', 'cancelled'],
+  preparing: ['ready', 'cancelled'],
+  ready: ['out_for_delivery', 'delivered', 'cancelled'],
+  out_for_delivery: ['delivered', 'cancelled'],
+  delivered: [],
+  cancelled: [],
+};
+export const podeIr = (de: Status, para: Status, tipo: string) => PROXIMOS[de].includes(para) && (para !== 'out_for_delivery' || tipo === 'delivery');
+
+// Endereço de entrega (jsonb do pedido) em uma linha
+export const enderecoTexto = (e: unknown) => {
+  if (!e || typeof e !== 'object') return '';
+  const a = e as Record<string, string | undefined>;
+  return [`${a.street ?? ''}, ${a.number ?? ''}${a.complement ? ` – ${a.complement}` : ''}`, a.district, a.city && `${a.city}/${a.state ?? ''}`, a.reference && `Ref.: ${a.reference}`].filter(Boolean).join(' · ');
+};
 export const PAGAMENTO: Record<string, string> = { cash: 'Dinheiro', pix: 'Pix', credit_card: 'Cartão de crédito', debit_card: 'Cartão de débito', other: 'Outro' };
 
 // Guarda do painel: só profiles.role = 'admin'. Chamada em TODA página e ação (o layout sozinho não basta, pois não roda

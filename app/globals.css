@@ -692,3 +692,70 @@ body:has(.nf) #conteudo{flex:1;display:flex;flex-direction:column}
 .vids-pontos button.on::before{width:26px;border-radius:6px;background:var(--destaque)}
 .vids-pontos button:focus-visible{outline:3px solid var(--destaque);outline-offset:-6px;border-radius:12px}
 @media(prefers-reduced-motion:reduce){.vids-dica i{animation:none}}
+
+/* ===== quadro da loja (/admin/loja) ===== */
+.loja{padding-bottom:60px}
+.loja-barra{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-bottom:16px}
+.loja-aviso{flex-basis:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;padding:14px 18px;border-radius:14px;background:var(--destaque);color:#130907;font-weight:800;font-size:18px;animation:loja-pisca 1s ease-in-out 3}
+.loja-aviso button{min-height:44px;padding:0 16px;border:2px solid currentColor;border-radius:999px;background:none;font:inherit;font-size:15px;color:inherit;cursor:pointer}
+@keyframes loja-pisca{50%{transform:scale(1.02)}}
+.loja-quadro{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(290px,1fr);gap:14px;overflow-x:auto;padding:0 max(20px,calc((100% - 1600px)/2)) 12px;scroll-snap-type:x mandatory;align-items:start}
+.loja-col{scroll-snap-align:start;display:grid;gap:12px;align-content:start;min-height:200px;padding:12px;border:1px solid var(--linha);border-radius:18px;background:color-mix(in srgb,var(--superficie) 55%,transparent)}
+.loja-col h2{display:flex;justify-content:space-between;align-items:center;margin:0 4px 4px;font:400 22px var(--fonte-titulo);text-transform:uppercase;color:var(--creme)}
+.loja-col h2 span{min-width:32px;padding:2px 10px;border-radius:999px;background:var(--fundo);font:700 15px var(--fonte-corpo);text-align:center;color:var(--destaque)}
+.ped{display:grid;gap:8px;padding:14px;border:1px solid var(--linha);border-left:5px solid var(--linha);border-radius:14px;background:var(--fundo);font-size:15px}
+.ped-pending{border-left-color:var(--destaque)}
+.ped-confirmed{border-left-color:var(--destaque)}
+.ped-preparing{border-left-color:#f08a24}
+.ped-ready,.ped-out_for_delivery{border-left-color:var(--ok)}
+.ped-delivered,.ped-cancelled{opacity:.7}
+.ped-cancelled{border-left-color:var(--erro)}
+.ped-cab{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.ped-cab b{font:400 26px var(--fonte-titulo);color:var(--creme)}
+.ped-cab span{color:var(--texto-fraco);font-size:14px}
+.ped-tipo{margin-left:auto;padding:2px 10px;border-radius:999px;font-weight:700;font-size:13px!important;text-transform:uppercase}
+.ped-tipo.ent{background:color-mix(in srgb,var(--destaque) 20%,transparent);color:var(--destaque)!important}
+.ped-tipo.ret{background:var(--superficie);color:var(--creme)!important}
+.ped-st{margin:0;font-weight:700;color:var(--destaque)}
+.ped-cli{margin:0;font-weight:600;color:var(--creme)}
+.ped-itens{list-style:none;margin:0;padding:8px 0;border-block:1px dashed var(--linha);display:grid;gap:6px}
+.ped-itens li{display:block}
+.ped-itens small{display:block;color:var(--texto-fraco)}
+.ped-itens mark,.ped-obs{display:block;margin-top:4px;padding:6px 10px;border-radius:8px;background:color-mix(in srgb,var(--destaque) 22%,transparent);color:var(--creme);font-weight:600}
+.ped-obs{margin:0}
+.ped-end{margin:0;font-size:14px;color:var(--texto-fraco)}
+.ped-total{display:flex;justify-content:space-between;align-items:baseline;margin:0}
+.ped-total b{font-size:18px;color:var(--creme)}
+.ped-acoes{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.ped-acoes form{display:contents}
+.ped-acoes .btn{min-height:44px;padding:0 16px;font-size:14px}
+.ped-link{display:inline-flex;align-items:center;min-height:44px;padding:0 6px;border:0;background:none;font:600 14px var(--fonte-corpo);color:var(--texto-fraco);text-decoration:underline;cursor:pointer}
+.ped-cancelar{color:var(--erro)}
+@media(max-width:700px){.loja-quadro{grid-auto-columns:86%}}
+
+/* ===== cupom térmico (/admin/imprimir/[id]) ===== */
+body:has(.cupons)>:not(#conteudo){display:none!important}
+body:has(.cupons){background:#fff}
+.cupons{padding:16px 8px;background:#fff;color:#000;font:13px/1.35 ui-monospace,'Courier New',monospace}
+.cupom{margin:0 auto 28px;padding:4px 0;border:1px dashed #999}
+.cupons.l80 .cupom{width:72mm}
+.cupons.l58 .cupom{width:48mm;font-size:11.5px}
+.cupom p{margin:0 0 2px}
+.cupom hr{border:0;border-top:1px dashed #000;margin:6px 0}
+.cupom-via{text-align:center;font-weight:800;font-size:1.5em;letter-spacing:2px;border:2px solid #000;padding:2px}
+.cupom-num{text-align:center;font-weight:800;font-size:2em}
+.cupom-c{text-align:center}
+.cupom-item{margin-bottom:6px}
+.cupom-item.grande{font-size:1.25em}
+.cupom-obs{font-weight:800;text-transform:uppercase}
+.cupom-linha{display:flex;justify-content:space-between;gap:8px}
+.cupom-total{font-weight:800;font-size:1.2em}
+.cupom-acoes{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:16px;font-family:var(--fonte-corpo)}
+@media print{
+  @page{margin:2mm}
+  .cupom-acoes{display:none}
+  .cupons{padding:0}
+  .cupom{margin:0;border:0;break-after:page;page-break-after:always}
+  .cupom:last-child{break-after:auto;page-break-after:auto}
+  .cupons *{color:#000!important;background:#fff!important;box-shadow:none!important}
+}
