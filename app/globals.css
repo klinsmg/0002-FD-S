@@ -52,7 +52,22 @@ p{margin:0 0 16px}
 .menu{display:flex;flex-direction:column;gap:4px;padding:8px 20px 22px;border-top:1px solid var(--linha)}
 .menu a:not(.btn){padding:14px 4px;font:400 26px var(--fonte-titulo);text-transform:uppercase;color:var(--creme);border-bottom:1px solid var(--linha)}
 .menu .btn{margin-top:14px}
+/* conta no cabeçalho: no celular sempre visível, antes do botão do menu */
+.topo-conta{margin-left:auto;position:relative;color:var(--creme)}
+.topo-conta~.menu-btn{margin-left:0}
+a.topo-conta,.topo-conta summary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;min-height:44px;padding:0 10px;border-radius:999px;cursor:pointer;list-style:none;font:700 14px var(--fonte-corpo);color:inherit;transition:background .15s,color .15s,opacity .2s}
+.topo-conta summary::-webkit-details-marker{display:none}
+a.topo-conta:hover,.topo-conta summary:hover,.topo-conta[open] summary{background:var(--superficie);color:var(--destaque)}
+.topo-conta summary span{max-width:12ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:480px){.topo-conta summary span{display:none}}
+.topo-conta-menu{position:absolute;right:0;top:calc(100% + 8px);min-width:200px;display:flex;flex-direction:column;padding:6px;border:1px solid var(--linha);border-radius:16px;background:var(--fundo);box-shadow:0 12px 32px rgb(0 0 0/.35);z-index:60}
+.topo-conta-menu a,.topo-conta-menu button{display:flex;align-items:center;min-height:44px;padding:0 14px;border:0;border-radius:10px;background:none;font:600 15px var(--fonte-corpo);color:var(--creme);text-align:left;cursor:pointer;width:100%}
+.topo-conta-menu a:hover,.topo-conta-menu button:hover{background:var(--superficie);color:var(--destaque)}
+.topo-conta-menu form{border-top:1px solid var(--linha);margin-top:4px;padding-top:4px}
 @media(min-width:900px){
+  .topo-conta{margin-left:0}
+  /* desktop com mouse: o ícone de entrar só aparece ao passar o mouse no cabeçalho (ou ao chegar nele pelo teclado) */
+  @media(hover:hover){a.topo-conta{opacity:0}.topo-wrap:hover a.topo-conta,a.topo-conta:focus-visible{opacity:1}}
   .menu-btn,.menu{display:none!important}
   .desk{display:flex;gap:6px;margin-left:auto}
   .desk a{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:999px;font:700 14px var(--fonte-corpo);text-transform:uppercase;letter-spacing:.8px;color:var(--creme);transition:background .15s,color .15s}

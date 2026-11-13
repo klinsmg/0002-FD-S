@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { nav } from './links';
 import Logo from './Logo';
+import ContaTopo from './ContaTopo';
 import { A } from '@/lib/alp';
 import { wa } from '@/lib/info';
 
@@ -13,6 +14,7 @@ export default function Header() {
         <nav className="desk" aria-label="Principal">
           {nav.map(([t, h]) => <Link key={h} href={h}>{t}</Link>)}
         </nav>
+        <ContaTopo />
         <a className="btn btn-p topo-cta" href={wa('Olá! Quero fazer um pedido.')} target="_blank" rel="noopener noreferrer">Pedir no WhatsApp</a>
         <button className="menu-btn" aria-label="Abrir menu" aria-controls="menu-mobile" {...A({ 'x-on:click': 'open=!open', 'x-bind:aria-expanded': 'open' })} />
       </header>

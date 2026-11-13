@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { COOKIE_MANTER, COOKIE_SESSAO, ajustarCookie } from '@/lib/supabase/sessao';
 
 // Renova a sessão do Supabase (cookies) só nas rotas de conta/admin/login. O resto do site continua estático e não passa por aqui.
 // A proteção de /conta em si está em app/conta/layout.tsx (getUser valida o token no servidor do Supabase).
@@ -9,13 +10,15 @@ export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
   if (!url || !key) return response;
 
+  const manter = request.cookies.get(COOKIE_MANTER)?.value !== '0';
   const supabase = createServerClient(url, key, {
+    cookieOptions: COOKIE_SESSAO,
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll(lista) {
         lista.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
-        lista.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        lista.forEach(({ name, value, options }) => response.cookies.set(name, value, ajustarCookie(options, manter)));
       },
     },
   });

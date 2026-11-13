@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { confirmarTotp, gerarTotp } from '@/app/admin/seguranca/actions';
 
 // Ativação do TOTP: enroll (gera QR + segredo) -> challenge -> verify com o 1º código. Só depois disso o fator fica "verified" e a sessão vira aal2.
 export default function AtivarTotp() {
@@ -12,14 +12,10 @@ export default function AtivarTotp() {
 
   async function gerar() {
     setOcupado(true); setErro('');
-    const supabase = createClient();
-    // fator iniciado e nunca confirmado bloqueia um novo enroll com o mesmo nome: remove os pendentes
-    const { data: lista } = await supabase.auth.mfa.listFactors();
-    for (const f of lista?.all ?? []) if (f.factor_type === 'totp' && f.status === 'unverified') await supabase.auth.mfa.unenroll({ factorId: f.id });
-    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: `painel-${Date.now()}` });
+    const r = await gerarTotp();
     setOcupado(false);
-    if (error || !data) { setErro('Não foi possível gerar o QR Code. Tente novamente.'); return; }
-    setDados({ id: data.id, qr: data.totp.qr_code, segredo: data.totp.secret });
+    if ('erro' in r) { setErro(r.erro); return; }
+    setDados(r);
     setFase('qr');
   }
 
@@ -27,12 +23,9 @@ export default function AtivarTotp() {
     e.preventDefault();
     if (!dados || !/^\d{6}$/.test(codigo)) { setErro('Digite os 6 dígitos.'); return; }
     setOcupado(true); setErro('');
-    const supabase = createClient();
-    const { data: desafio, error: e1 } = await supabase.auth.mfa.challenge({ factorId: dados.id });
-    const { error: e2 } = e1 || !desafio ? { error: e1 } : await supabase.auth.mfa.verify({ factorId: dados.id, challengeId: desafio.id, code: codigo });
+    const r = await confirmarTotp(dados.id, codigo); // certo: o servidor redireciona para /admin
     setOcupado(false);
-    if (e1 || e2) { setErro('Código inválido ou expirado.'); return; }
-    window.location.assign('/admin');
+    setErro(r.erro);
   }
 
   if (fase === 'inicio') return (

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { abrirLinkSenha, enviarLinkSenha, salvarSenha } from '@/app/admin/senha/actions';
 
 // /admin/senha: (1) sem link de recuperação na URL -> pede o e-mail e envia o link; (2) com o link (hash #access_token ou ?code) -> define a nova senha.
 export default function DefinirSenha() {
@@ -12,15 +12,11 @@ export default function DefinirSenha() {
 
   useEffect(() => {
     (async () => {
-      const supabase = createClient();
       const hash = new URLSearchParams(window.location.hash.slice(1));
       const code = new URLSearchParams(window.location.search).get('code');
-      let ok = false;
-      if (hash.get('access_token') && hash.get('refresh_token')) {
-        ok = !(await supabase.auth.setSession({ access_token: hash.get('access_token')!, refresh_token: hash.get('refresh_token')! })).error;
-      } else if (code) {
-        ok = !(await supabase.auth.exchangeCodeForSession(code)).error;
-      }
+      const ok = hash.get('access_token') || code
+        ? await abrirLinkSenha({ code: code ?? undefined, access_token: hash.get('access_token') ?? undefined, refresh_token: hash.get('refresh_token') ?? undefined })
+        : false;
       if (ok) history.replaceState(null, '', '/admin/senha'); // tira o token da barra de endereço
       else if (hash.get('access_token') || code) setErro('Link inválido ou expirado. Peça um novo.');
       setFase(ok ? 'senha' : 'email');
@@ -29,13 +25,9 @@ export default function DefinirSenha() {
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault(); setOcupado(true); setErro('');
-    const { error } = await createClient().auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/admin/senha` });
+    const r = await enviarLinkSenha(email);
     setOcupado(false);
-    // limite de envio / falha do serviço de e-mail não dependem da conta existir, então podem ser mostrados; o resto responde igual
-    if (error && (error.status === 429 || error.status === 500 || /rate|limit|smtp|sending/i.test(error.message))) {
-      setErro(error.status === 429 || /rate|limit/i.test(error.message) ? 'Limite de envios do Supabase atingido. Aguarde alguns minutos (ou configure um SMTP próprio).' : 'O Supabase não conseguiu enviar o e-mail (verifique o SMTP).');
-      return;
-    }
+    if (r.erro) { setErro(r.erro); return; }
     setFase('enviado'); // mesma resposta exista a conta ou não
   }
 
@@ -43,10 +35,9 @@ export default function DefinirSenha() {
     e.preventDefault();
     if (senha.length < 12) { setErro('Use pelo menos 12 caracteres.'); return; }
     setOcupado(true); setErro('');
-    const { error } = await createClient().auth.updateUser({ password: senha });
+    const r = await salvarSenha(senha); // certo: o servidor redireciona para /admin (o guarda leva ao 2FA)
     setOcupado(false);
-    if (error) { setErro('Não foi possível salvar a senha. Peça um novo link.'); return; }
-    window.location.assign('/admin'); // o guarda leva ao código 2FA ou à ativação
+    setErro(r.erro);
   }
 
   if (fase === 'carregando') return <p className="nota">Verificando…</p>;
