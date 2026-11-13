@@ -1,13 +1,13 @@
 // Carrinho do cardápio (Alpine.data). Serve só para o cliente ter noção de valores e montar o pedido:
-// nada é cobrado aqui; o pedido segue como mensagem para o WhatsApp da loja, onde o pagamento é combinado.
+// nada é cobrado aqui; o pedido é gravado pelo próprio sistema (Server Action do checkout).
 import { MSG_CEP, buscarCep } from './viacep';
 
 type Extra = { n: string; p: number | null; q: number };
 type Linha = { k: string; n: string; v: string; p: number | null; q: number; obs: string; ponto?: string; ex?: Extra[] };
-type Cfg = { ids: string[]; paiDaSub: Record<string, string>; wa: string; molhos: { n: string; p: number | null; t: string }[] };
+type Cfg = { ids: string[]; paiDaSub: Record<string, string>; molhos: { n: string; p: number | null; t: string }[] };
 
-// Tira caracteres de controle e de inversão de texto (ex.: U+202E) de tudo que o cliente digita antes de montar a mensagem:
-// evita texto enganoso ou "quebrado" na conversa do WhatsApp da loja.
+// Tira caracteres de controle e de inversão de texto (ex.: U+202E) de tudo que o cliente digita antes de enviar o pedido:
+// evita texto enganoso ou "quebrado" no pedido que a loja recebe.
 const limpa = (s: string) => s.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060-\u2069\ufeff]/g, ' ').replace(/\s+/g, ' ').trim();
 const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const KEY = 'dogao-pedido';
@@ -270,35 +270,6 @@ export function carrinho(cfg: Cfg): any {
       form.requestSubmit();
     },
 
-    // --- mensagem do pedido (formato do WhatsApp: *negrito*, _itálico_) ---
-    get mensagem() {
-      const L: string[] = ['*Pedido – MDogão Itapevi*', ''];
-      L.push(`*Cliente:* ${limpa(this.nome) || '(não informado)'}`);
-      if (this.tipo === 'entrega') L.push('*Entrega:*', ...(this.endOk ? this.endLinhas : ['(endereço a combinar)'])); else L.push('*Retirada na loja*');
-      L.push('', '*Itens*');
-      for (const i of this.itens as Linha[]) {
-        L.push(`${i.q}x ${i.v ? `${i.n} (${i.v})` : i.n} – ${this.linha(i)}`);
-        if (i.ponto) L.push(`   ↳ Ponto da carne: ${limpa(i.ponto)}`);
-        if (i.ex?.length) L.push(`   ↳ A mais: ${i.ex.map(e => `${e.q}x ${e.n} (${e.p == null ? 'valor a confirmar' : brl(e.p * e.q)})`).join(', ')}`);
-        if (limpa(i.obs)) L.push(`   ↳ ${limpa(i.obs)}`);
-      }
-      L.push('', `*Total estimado:* ${this.totalTxt}`);
-      if (limpa(this.obs)) L.push('', `*Observações:* ${limpa(this.obs)}`);
-      L.push('', '_Pagamento combinado por aqui, pelo WhatsApp._');
-      return L.join('\n');
-    },
-    enviar() {
-      this.erro = '';
-      if (!this.itens.length) { this.erro = 'Adicione ao menos um item.'; return; }
-      if (this.faltando()) { this.envioPendente = true; this.avancar(); return; }
-      const agora = Date.now();
-      if (agora - this.ultimoEnvio < 2500) return; // evita cliques repetidos / envio em rajada
-      const url = `https://wa.me/${this.wa}?text=${encodeURIComponent(this.mensagem)}`;
-      if (url.length > 6000) { this.erro = 'Pedido muito grande para enviar de uma vez. Divida em dois pedidos.'; return; }
-      this.ultimoEnvio = agora;
-      window.open(url, '_blank', 'noopener,noreferrer');
-      this.feito = true;
-    },
   };
   return c;
 }

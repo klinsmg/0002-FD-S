@@ -20,7 +20,7 @@ const horarios = info.horarios.map(([d, h]) => `${d}: ${h}`).join('; ');
 
 export const llms = () => `# ${info.nome}
 
-> Hamburgueria e restaurante em Itapevi-SP, desde 1995: lanches artesanais, hot dog, pastéis, porções, refeições, combos, rodízio de mini lanches e bebidas. Pedidos são feitos pelo cardápio do site e enviados por WhatsApp; o pagamento é combinado direto com a loja (o site não cobra nada).
+> Hamburgueria e restaurante em Itapevi-SP, desde 1995: lanches artesanais, hot dog, pastéis, porções, refeições, combos, rodízio de mini lanches e bebidas. Pedidos são feitos pelo cardápio do site, com login da conta do cliente; a loja confirma a taxa de entrega e o pagamento (o site não cobra nada). O WhatsApp fica para contato e reservas.
 
 - Endereço: ${info.rua}, ${info.bairro}
 - Horários: ${horarios}
@@ -30,7 +30,7 @@ export const llms = () => `# ${info.nome}
 ## Páginas
 
 - [Início](${site}/): apresentação, categorias, rodízio, vídeos e como chegar
-- [Cardápio](${site}/cardapio): todos os itens e preços; monte o pedido e envie pelo WhatsApp
+- [Cardápio](${site}/cardapio): todos os itens e preços; monte e faça o pedido pelo site
 - [Contato](${site}/contato): formulário, canais de contato, horários e mapa
 - [Política de privacidade](${site}/politica-de-privacidade)
 - [Política de cookies](${site}/politica-de-cookies)
@@ -43,7 +43,7 @@ export const llms = () => `# ${info.nome}
 `;
 
 export const llmsFull = () => {
-  const L = [`# ${info.nome}: cardápio completo`, '', '> Cardápio de janeiro/2025; preços sujeitos a alteração. Itens sem preço: valor a confirmar com a loja pelo WhatsApp.', ''];
+  const L = [`# ${info.nome}: cardápio completo`, '', '> Cardápio de janeiro/2025; preços sujeitos a alteração. Itens sem preço: valor a confirmar com a loja.', ''];
   for (const c of cats) {
     L.push(`## ${c.nome}`, '', c.desc, '');
     if (c.nota) L.push(c.nota, '');

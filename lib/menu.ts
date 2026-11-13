@@ -117,7 +117,7 @@ export const cats: Cat[] = [
   },
   {
     id: 'refeicoes', nome: 'Refeições', desc: 'Pratos que matam a fome de verdade.',
-    nota: 'Valores do prato feito, do quilo e das marmitex (pequena, média e grande): consulte no WhatsApp.',
+    nota: 'Valores do prato feito, do quilo e das marmitex (pequena, média e grande): consulte a loja.',
     grupos: [
       { t: 'Almoço · segunda a sábado, 11h às 16h', info: true, itens: [{ n: 'Por quilo' }, { n: 'À vontade' }, { n: 'Prato feito' }, { n: 'Feijoada às quartas e sábados' }] },
       { t: 'Jantar · segunda a sábado', info: true, itens: [{ n: 'Prato feito' }] },
@@ -161,7 +161,7 @@ export const cats: Cat[] = [
   },
   {
     id: 'rodizio', nome: 'Rodízio', desc: 'Mini hot dogs e mini burguers à vontade, com entrada e acompanhamentos.',
-    nota: 'Segunda a domingo, das 18h às 24h. Valores do rodízio e das bebidas: confirme no WhatsApp.',
+    nota: 'Segunda a domingo, das 18h às 24h. Valores do rodízio e das bebidas: confirme com a loja.',
     grupos: [
       { t: 'Incluso', info: true, itens: [{ n: '01 entrada de mini waffles' }, { n: '01 piscininha de cheddar' }, { n: 'Porção de anéis de cebola' }, { n: 'Porção de batata-frita' }] },
       { t: 'Mini hot dogs', info: true, itens: [{ n: 'Mini Dog' }, { n: 'Mini Dog Bacon' }, { n: 'Mini Dog Cheddar' }, { n: 'Mini Dog Catupiry' }] },

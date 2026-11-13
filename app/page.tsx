@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import Mapa from '@/components/Mapa';
-import { info, wa, mapa } from '@/lib/info';
+import { info, mapa } from '@/lib/info';
 import { ALT } from '@/lib/alt';
 import { A } from '@/lib/alp';
 
@@ -26,10 +26,9 @@ const galeria: [number, string][] = [
   [7, ALT.p07],
   [29, ALT.p29],
 ];
-const pedir = wa('Olá! Quero fazer um pedido.');
 
 export const metadata = {
-  description: 'MDogão Itapevi: hambúrgueres artesanais, hot dog, pastéis, porções e rodízio em Itapevi-SP. Desde 1995. Veja o cardápio e peça pelo WhatsApp.',
+  description: 'MDogão Itapevi: hambúrgueres artesanais, hot dog, pastéis, porções e rodízio em Itapevi-SP. Desde 1995. Veja o cardápio e faça seu pedido pelo site.',
 };
 
 export default function Home() {
@@ -54,8 +53,9 @@ export default function Home() {
             </h1>
             <p className="lead">Desde 1995 trabalhando com dedicação, para cada mordida uma experiência única.</p>
             <div className="flex flex-wrap gap-3 mt-[26px]">
-              <a className="btn btn-p" href={pedir} target="_blank" rel="noopener noreferrer">Pedir no WhatsApp</a>
-              <Link className="btn btn-o" href="/cardapio">Ver cardápio</Link>
+              {/* data-cta-hero: o "Realizar pedido" do cabeçalho só aparece quando este botão sai da tela */}
+              <Link className="btn btn-p" href="/cardapio" data-cta-hero="">Realizar pedido</Link>
+              <Link className="btn btn-o" href="/cardapio#rodizio">Ver o rodízio</Link>
             </div>
             <ul className="mini-info">
               <li><b>Desde</b> 1995</li>
@@ -105,10 +105,10 @@ export default function Home() {
               <li>Reservas com tolerância de 15 minutos</li>
             </ul>
             <div className="flex flex-wrap gap-3 mt-[26px]">
-              <a className="btn btn-p" href={wa('Olá! Quero reservar o rodízio.')} target="_blank" rel="noopener noreferrer">Reservar pelo WhatsApp</a>
+              <Link className="btn btn-p" href="/contato">Reservar o rodízio</Link>
               <Link className="btn btn-o" href="/cardapio#rodizio">Ver o rodízio completo</Link>
             </div>
-            <p className="nota">Valores e condições sujeitos a alteração: confirme no WhatsApp.</p>
+            <p className="nota">Valores e condições sujeitos a alteração: confirme com a loja.</p>
           </div>
         </div>
       </section>
@@ -172,7 +172,7 @@ export default function Home() {
               {info.horarios.map(([d, h]) => <div key={d}><dt>{d}</dt><dd>{h}</dd></div>)}
             </dl>
             <div className="flex flex-wrap gap-3 mt-[26px]">
-              <a className="btn btn-p" href={pedir} target="_blank" rel="noopener noreferrer">Fazer meu pedido</a>
+              <Link className="btn btn-p" href="/cardapio">Realizar pedido</Link>
               <a className="btn btn-o" href={mapa} target="_blank" rel="noopener noreferrer">Como chegar</a>
             </div>
           </div>

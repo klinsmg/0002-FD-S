@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import Mapa from '@/components/Mapa';
 import { info, wa, mapa } from '@/lib/info';
 import { A } from '@/lib/alp';
@@ -14,7 +15,7 @@ export default function Contato() {
       <header className="pg-cab wrap">
         <p className="script">contato</p>
         <h1>Fale com a <em>gente</em></h1>
-        <p>Pedidos, reservas do rodízio, dúvidas ou elogios: o jeito mais rápido é o WhatsApp.</p>
+        <p>Reservas do rodízio, dúvidas ou elogios: o jeito mais rápido é o WhatsApp. Pedidos são feitos pelo <Link href="/cardapio">cardápio do site</Link>.</p>
       </header>
 
       <div className="wrap contato-grid">

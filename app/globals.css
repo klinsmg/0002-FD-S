@@ -40,11 +40,16 @@ p{margin:0 0 16px}
 
 /* ===== cabeçalho ===== */
 .topo-wrap{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--fundo) 86%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--linha)}
-.topo{width:min(1180px,100% - 40px);margin-inline:auto;height:var(--header-h);display:flex;align-items:center;gap:24px;position:relative}
+.topo{width:min(1180px,100% - 40px);margin-inline:auto;height:var(--header-h);display:flex;align-items:center;gap:10px;position:relative}
+@media(min-width:900px){.topo{gap:24px}}
 .marca{display:block;width:56px;height:56px;flex:none}
 .marca img{width:56px;height:56px;object-fit:contain}
 .desk{display:none}
-.topo-cta{display:none;margin-left:auto}
+.topo-cta{margin-left:auto;min-height:40px;padding:0 14px;font-size:13px;white-space:nowrap;transition:opacity .25s,transform .25s,visibility .25s}
+.topo-cta~.menu-btn{margin-left:0}
+/* página com o botão da hero: o do cabeçalho só aparece quando aquele sai da tela (classe .fora, ver CtaTopo) */
+body:has([data-cta-hero]) .topo-cta:not(.fora){opacity:0;visibility:hidden;transform:translateY(-6px)}
+@media(prefers-reduced-motion:reduce){.topo-cta{transition:none}}
 .menu-btn{margin-left:auto;width:48px;height:48px;border:0;border-radius:12px;cursor:pointer;background:
   linear-gradient(var(--destaque),var(--destaque)) center 16px/24px 2px no-repeat,
   linear-gradient(var(--destaque),var(--destaque)) center 23px/24px 2px no-repeat,
@@ -52,9 +57,8 @@ p{margin:0 0 16px}
 .menu{display:flex;flex-direction:column;gap:4px;padding:8px 20px 22px;border-top:1px solid var(--linha)}
 .menu a:not(.btn){padding:14px 4px;font:400 26px var(--fonte-titulo);text-transform:uppercase;color:var(--creme);border-bottom:1px solid var(--linha)}
 .menu .btn{margin-top:14px}
-/* conta no cabeçalho: no celular sempre visível, antes do botão do menu */
-.topo-conta{margin-left:auto;position:relative;color:var(--creme)}
-.topo-conta~.menu-btn{margin-left:0}
+/* conta no cabeçalho: sempre visível, no extremo direito */
+.topo-conta{position:relative;color:var(--creme);flex:none}
 a.topo-conta,.topo-conta summary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;min-height:44px;padding:0 10px;border-radius:999px;cursor:pointer;list-style:none;font:700 14px var(--fonte-corpo);color:inherit;transition:background .15s,color .15s,opacity .2s}
 .topo-conta summary::-webkit-details-marker{display:none}
 a.topo-conta:hover,.topo-conta summary:hover,.topo-conta[open] summary{background:var(--superficie);color:var(--destaque)}
@@ -65,14 +69,11 @@ a.topo-conta:hover,.topo-conta summary:hover,.topo-conta[open] summary{backgroun
 .topo-conta-menu a:hover,.topo-conta-menu button:hover{background:var(--superficie);color:var(--destaque)}
 .topo-conta-menu form{border-top:1px solid var(--linha);margin-top:4px;padding-top:4px}
 @media(min-width:900px){
-  .topo-conta{margin-left:0}
-  /* desktop com mouse: o ícone de entrar só aparece ao passar o mouse no cabeçalho (ou ao chegar nele pelo teclado) */
-  @media(hover:hover){a.topo-conta{opacity:0}.topo-wrap:hover a.topo-conta,a.topo-conta:focus-visible{opacity:1}}
   .menu-btn,.menu{display:none!important}
   .desk{display:flex;gap:6px;margin-left:auto}
   .desk a{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:999px;font:700 14px var(--fonte-corpo);text-transform:uppercase;letter-spacing:.8px;color:var(--creme);transition:background .15s,color .15s}
   .desk a:hover{background:var(--superficie);color:var(--destaque)}
-  .topo-cta{display:inline-flex;margin-left:0;min-height:44px}
+  .topo-cta{margin-left:0;min-height:44px;padding:0 22px;font-size:inherit}
 }
 
 /* ===== hero ===== */

@@ -4,7 +4,6 @@ import LimparCarrinho from '@/components/LimparCarrinho';
 import { usuarioAtual } from '@/lib/supabase/server';
 import AtualizarSozinho from '@/components/AtualizarSozinho';
 import { PONTO, STATUS, TIPO, data, reais } from '@/lib/conta';
-import { info } from '@/lib/info';
 
 export const metadata = { title: 'Seu pedido', robots: { index: false, follow: false } };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -31,14 +30,6 @@ export default async function Pedido({ params }: { params: Promise<{ id: string 
   const ETAPA: Record<string, number> = { pending: 0, confirmed: 0, preparing: 1, ready: 2, out_for_delivery: 3, delivered: passos.length - 1 };
   const etapa = ETAPA[p.status] ?? -1;
   const encerrado = p.status === 'delivered' || p.status === 'cancelled';
-  const msg = [
-    `*Pedido #${p.order_number} – MDogão Itapevi*`, '', `*Cliente:* ${p.customer_name}`,
-    p.order_type === 'delivery' && end ? `*Entrega:* ${end.street}, ${end.number}${end.complement ? ` – ${end.complement}` : ''} – ${end.district} – ${end.city}/${end.state}` : '*Retirada na loja*',
-    '', '*Itens*',
-    ...p.order_items.map(i => `${i.quantity}x ${i.product_name}${i.variant_label ? ` (${i.variant_label})` : ''}${i.doneness ? ` – ${PONTO[i.doneness]}` : ''}${i.order_item_extras.length ? ` + ${i.order_item_extras.map(x => `${x.quantity}x ${x.name}`).join(', ')}` : ''}`),
-    '', `*Total:* ${reais(p.total_cents)}${p.has_price_pending ? ' + itens a confirmar' : ''}`, '', '_Taxa de entrega e pagamento combinados por aqui._',
-  ].join('\n');
-
   return (
     <main>
       <LimparCarrinho />
@@ -50,7 +41,7 @@ export default async function Pedido({ params }: { params: Promise<{ id: string 
       </header>
       <div className="wrap conta-caixa">
         {p.status === 'cancelled' ? (
-          <p className="nota" role="status"><span className="st st-cancelled">Cancelado</span> Este pedido foi cancelado. Dúvidas? Fale com a loja pelo WhatsApp.</p>
+          <p className="nota" role="status"><span className="st st-cancelled">Cancelado</span> Este pedido foi cancelado. Dúvidas? <Link href="/contato">Fale com a loja</Link>.</p>
         ) : (
           <ol className="trilha" style={{ '--n': passos.length } as React.CSSProperties} aria-label="Andamento do pedido">
             {passos.map((t, i) => <li key={t} className={i <= etapa ? 'feito' : undefined} aria-current={i === etapa ? 'step' : undefined}>{t}</li>)}
@@ -75,12 +66,7 @@ export default async function Pedido({ params }: { params: Promise<{ id: string 
           <b>Total {reais(p.total_cents)}{p.has_price_pending ? ' + itens a confirmar' : ''}</b>
         </p>
 
-        {p.status === 'pending' && (
-          <>
-          <p className="nota">Seu pedido foi registrado. Para a loja começar o preparo e combinar pagamento{p.order_type === 'delivery' ? ' e taxa de entrega' : ''}, envie-o pelo WhatsApp:</p>
-          <a className="btn btn-p" href={`https://wa.me/${info.wa}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener noreferrer">Enviar pelo WhatsApp</a>
-          </>
-        )}
+        {p.status === 'pending' && <p className="nota">A loja já recebeu o seu pedido e vai confirmar por aqui{p.order_type === 'delivery' ? ', junto com a taxa de entrega' : ''}. A forma de pagamento é combinada com a loja.</p>}
         <p className="nota"><Link href="/conta/pedidos">Ver todos os meus pedidos</Link></p>
       </div>
     </main>

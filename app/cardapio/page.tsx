@@ -2,17 +2,16 @@ import FormPedido from '@/components/FormPedido';
 import type React from 'react';
 import Image from 'next/image';
 import { cats, pais, variantes, molhos, PONTOS, SEM } from '@/lib/menu';
-import { info } from '@/lib/info';
 import { ALT } from '@/lib/alt';
 import { A } from '@/lib/alp';
 
 export const metadata = {
   title: 'Cardápio da Lanchonete em Itapevi',
-  description: 'Cardápio do MDogão Itapevi: monte o seu pedido e envie pelo WhatsApp. Hambúrgueres, hot dog, pastéis, porções, combos e bebidas.',
+  description: 'Cardápio do MDogão Itapevi: monte e faça o seu pedido pelo site. Hambúrgueres, hot dog, pastéis, porções, combos e bebidas.',
 };
 
-// Cardápio + carrinho (lib/carrinho.ts, Alpine). O carrinho só dá noção de valores e monta a mensagem do pedido;
-// o pagamento é combinado pelo WhatsApp. Esquema do template: banner, faixa de categorias (ícones), busca/filtro lateral, cartões.
+// Cardápio + carrinho (lib/carrinho.ts, Alpine). O carrinho monta o pedido e o envia ao sistema (FormPedido);
+// a loja confirma taxa de entrega e pagamento. Esquema do template: banner, faixa de categorias (ícones), busca/filtro lateral, cartões.
 const porId = Object.fromEntries(cats.map(c => [c.id, c]));
 const destaque = porId['burguers-classicos'].grupos[0].itens.find(i => i.n === 'Clássico Insano')!; // é o lanche da foto do banner
 // após filtrar, sobe até o início da lista
@@ -86,7 +85,7 @@ const campoEnd = (foco?: string) => (
 export default function Cardapio() {
   return (
     <main
-      x-data={`carrinho(${q({ ids, paiDaSub, wa: info.wa, molhos: molhos.map(m => ({ n: m.n, p: variantes(m)[0].p, t: variantes(m)[0].t })) })})`}
+      x-data={`carrinho(${q({ ids, paiDaSub, molhos: molhos.map(m => ({ n: m.n, p: variantes(m)[0].p, t: variantes(m)[0].t })) })})`}
       {...A({ 'x-on:hashchange.window': 'hash()', 'x-on:keydown.escape.window': "open=false; passo=''; opc=null" })}
     >
       <h1 className="sr-only">Cardápio</h1>
@@ -224,7 +223,7 @@ export default function Cardapio() {
           })}
         </div>
       </div>
-      <p className="aviso-menu wrap">Cardápio de janeiro/2025. Valores sujeitos a alteração: o pedido é confirmado, e o pagamento combinado, pelo WhatsApp.</p>
+      <p className="aviso-menu wrap">Cardápio de janeiro/2025. Valores sujeitos a alteração: a loja confirma o pedido, a taxa de entrega e a forma de pagamento.</p>
 
       {/* barra do pedido (aparece com itens no carrinho) */}
       <button type="button" className="barra-pedido" x-show="qtdTotal>0 && !open" x-cloak="" {...A({ 'x-on:click': 'abrir($el)' })}>
@@ -343,15 +342,11 @@ export default function Cardapio() {
             <template x-for="i in itens" {...A({ 'x-bind:key': 'i.k' })} dangerouslySetInnerHTML={{ __html: LINHA }} />
           </ul>
 
-          <details className="previa" x-show="itens.length>0">
-            <summary>Ver a mensagem que será enviada</summary>
-            <pre x-text="mensagem" />
-          </details>
         </div>
 
         <footer x-show="itens.length>0">
           <p className="total"><span>Total estimado</span><b x-text="totalTxt" /></p>
-          <p className="nota">Valores de referência. Para finalizar, entre com a sua conta; taxa de entrega e pagamento são combinados pelo WhatsApp.</p>
+          <p className="nota">Valores de referência. Para finalizar, entre com a sua conta; a loja confirma a taxa de entrega e a forma de pagamento.</p>
           <p className="erro" role="alert" x-show="erro" x-text="erro" x-cloak="" />
           <FormPedido />
           <button type="button" className="btn btn-p enviar" {...A({ 'x-on:click': 'finalizar()' })}>Finalizar pedido</button>
