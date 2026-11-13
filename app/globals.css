@@ -125,6 +125,7 @@ address a:hover{color:var(--destaque)}
 
 /* ===== rodapé (estrutura do template: logo, chamada, redes, navegação, legal) ===== */
 footer{background:var(--fundo-fundo);border-top:1px solid var(--linha);text-align:center;padding:50px 16px 30px}
+footer.rodape-min{padding:22px 16px 26px}footer.rodape-min .nav2{margin:0 0 8px}
 .logo-s{display:flex;justify-content:center}
 .fome{font:400 28px var(--fonte-titulo);letter-spacing:1px;margin:18px 0;color:var(--creme)}
 .fome span{color:var(--destaque)}
@@ -171,6 +172,11 @@ footer{background:var(--fundo-fundo);border-top:1px solid var(--linha);text-alig
 .conta-caixa{max-width:640px;padding-bottom:90px}
 .conta-caixa .btn{margin-top:22px}
 .conta-tit{margin:36px 0 8px}
+.conta-sub{margin:26px 0 8px;font-size:clamp(20px,2.4vw,26px)}
+.conta-ancoras{display:flex;flex-wrap:wrap;gap:6px 22px;padding-bottom:4px;border-bottom:1px solid var(--linha)}
+.conta-ancoras a{display:inline-flex;align-items:center;min-height:44px;color:var(--creme);font-weight:700}
+.conta-ancoras a:hover{color:var(--destaque)}
+.conta-caixa section{scroll-margin-top:calc(var(--header-h) + 16px)}
 .login-botoes{display:grid;justify-items:start}
 .login-botoes .nota{margin-top:12px}
 .conta-menu{display:flex;gap:6px 22px;flex-wrap:wrap;padding-top:18px}
@@ -565,11 +571,6 @@ address,.hor,.end,.canais,.sel{-webkit-user-select:text;user-select:text}
 .nf h1{font-size:clamp(32px,5vw,58px);margin:8px 0 12px}
 .nf-sub{max-width:46ch;font-size:clamp(16px,1.6vw,19px);color:var(--texto);margin:0}
 .nf-acoes{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}
-.nf-links{margin-top:30px;font-size:14px;color:var(--texto-fraco)}
-.nf-links p{margin:0 0 6px}
-.nf-links ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:0 22px}
-.nf-links a{display:inline-flex;align-items:center;min-height:44px;color:var(--creme);font-weight:700;text-decoration:underline;text-decoration-color:var(--linha);text-underline-offset:5px}
-.nf-links a:hover{color:var(--destaque);text-decoration-color:var(--destaque)}
 .nf-img{display:none}
 @media(min-width:900px){
   .nf-img{display:block;position:absolute;z-index:1;top:0;bottom:0;right:0;width:46%;
@@ -625,6 +626,24 @@ address,.hor,.end,.canais,.sel{-webkit-user-select:text;user-select:text}
 .legal-nav{grid-template-columns:minmax(0,1fr)}
 .legal-nav>nav{min-width:0}
 .nf-txt .script{margin:0 0 14px}
+
+/* 404 cabe inteira na tela, sem rolagem: o rodapé vira só a linha jurídica e o conteúdo encolhe pela altura da janela */
+/* na 404 o cabeçalho fica só com a logo (sem menu, botão do WhatsApp nem menu mobile) */
+body:has(.nf) .topo>:not(.marca),body:has(.nf) #menu-mobile{display:none!important}
+body:has(.nf) footer{padding:10px 16px 14px}
+body:has(.nf) footer>:not(.nav2):not(.legal-row),body:has(.nf) .credito{display:none}
+body:has(.nf) footer .nav2{margin-bottom:0}
+body:has(.nf){min-height:100svh;display:flex;flex-direction:column}
+body:has(.nf) #conteudo{flex:1;display:flex;flex-direction:column}
+.nf{flex:1;min-height:0;padding:clamp(14px,4svh,48px) 6vw}
+.nf-txt .script{margin:0 0 clamp(8px,1.6svh,14px)}
+.nf-num{font-size:clamp(64px,min(22vw,21svh),250px)}
+.nf h1{font-size:clamp(26px,min(5vw,6svh),58px);margin:clamp(4px,1svh,8px) 0 clamp(6px,1.4svh,12px)}
+.nf-sub{font-size:clamp(15px,min(1.6vw,2.3svh),19px)}
+.nf-acoes{margin-top:clamp(12px,3svh,26px)}
+@media(max-height:600px){body:has(.nf) .legal-row{display:none}.nf-num{font-size:52px}}
+@media(max-width:600px){.nf-acoes{flex-wrap:nowrap}.nf-acoes .btn{flex:1 1 0;min-width:0;justify-content:center;padding-inline:10px;font-size:14px;white-space:nowrap}}
+@media(max-width:359px){.nf-acoes{gap:8px}.nf-acoes .btn{font-size:12px;padding-inline:6px;letter-spacing:0}}
 
 /* indicadores do carrossel de vídeos (só no celular) */
 .vids-dica,.vids-pontos{display:flex;justify-content:center;align-items:center}

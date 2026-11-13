@@ -1,6 +1,5 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { nav } from '@/components/links';
 
 export const metadata = { title: 'Página não encontrada' };
 
@@ -17,10 +16,6 @@ export default function NotFound() {
           <Link className="btn btn-p" href="/">Voltar ao início</Link>
           <Link className="btn btn-o" href="/cardapio">Ver o cardápio</Link>
         </div>
-        <nav className="nf-links" aria-label="Páginas do site">
-          <p>Ou vá direto para:</p>
-          <ul>{nav.map(([t, h]) => <li key={h}><Link href={h}>{t}</Link></li>)}</ul>
-        </nav>
       </div>
       <div className="nf-img" aria-hidden="true">
         <Image src="/img/p14.webp" alt="" width={1000} height={1250} sizes="(min-width:900px) 50vw, 0px" quality={85} />

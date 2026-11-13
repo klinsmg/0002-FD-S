@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Anton, Pacifico, Inter } from 'next/font/google';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import SemRodape from '@/components/SemRodape';
 import Lazy from '@/components/Lazy';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -40,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a className="pular" href="#conteudo">Pular para o conteúdo</a>
         <Header />
         <div id="conteudo" tabIndex={-1}>{children}</div>
-        <Footer />
+        <SemRodape><Footer /></SemRodape>
         <Lazy />
         <Analytics />
         <SpeedInsights />

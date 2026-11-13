@@ -1,19 +1,19 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { ERROS, STATUS, data, reais } from '@/lib/conta';
-import { salvarPerfil, sair } from './actions';
+import { STATUS, cep, data, reais } from '@/lib/conta';
 
-export default async function Conta({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
-  const { erro } = await searchParams;
+// Resumo (só leitura): contato, endereço padrão e últimos pedidos. Tudo que se edita fica em /conta/configuracoes.
+export default async function Conta() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  // RLS: cada cliente só enxerga o próprio perfil e os próprios pedidos.
-  const [{ data: perfil }, { data: pedidos }] = await Promise.all([
+  // Filtra pelo dono: o RLS deixa o admin ler todos, e aqui é a área pessoal.
+  const [{ data: perfil }, { data: padrao }, { data: pedidos }] = await Promise.all([
     supabase.from('profiles').select('full_name, phone').eq('id', user.id).maybeSingle(),
-    supabase.from('orders').select('id, order_number, status, total_cents, has_price_pending, created_at').order('created_at', { ascending: false }).limit(5),
+    supabase.from('addresses').select('label, street, number, complement, district, city, state, zip_code').eq('user_id', user.id).eq('is_default', true).maybeSingle(),
+    supabase.from('orders').select('id, order_number, status, total_cents, has_price_pending, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
   ]);
 
   return (
@@ -23,15 +23,12 @@ export default async function Conta({ searchParams }: { searchParams: Promise<{ 
         <h1>Olá, <em>{perfil?.full_name ?? 'cliente'}</em></h1>
       </header>
       <div className="wrap conta-caixa">
-        <form className="form" action={salvarPerfil}>
-          <label htmlFor="p-nome">Nome</label>
-          <input id="p-nome" name="full_name" autoComplete="name" maxLength={120} required defaultValue={perfil?.full_name ?? ''} />
-          <label htmlFor="p-fone">Telefone</label>
-          <input id="p-fone" name="phone" type="tel" autoComplete="tel" maxLength={20} defaultValue={perfil?.phone ?? ''} placeholder="(11) 90000-0000" />
-          <p className="nota">E-mail: {user.email}</p>
-          {erro && ERROS[erro] && <p className="nota" role="alert">{ERROS[erro]}</p>}
-          <button className="btn btn-p" type="submit">Salvar</button>
-        </form>
+        <ul className="canais">
+          <li><b>E-mail</b><span>{user.email}</span></li>
+          <li><b>Telefone</b><span>{perfil?.phone ?? 'Não informado'}</span></li>
+          <li><b>Endereço padrão</b><span>{padrao ? `${padrao.label}: ${padrao.street}, ${padrao.number}${padrao.complement ? ` – ${padrao.complement}` : ''} · ${padrao.district} · ${padrao.city}/${padrao.state} · ${cep(padrao.zip_code)}` : 'Nenhum endereço salvo'}</span></li>
+        </ul>
+        <p className="nota"><Link href="/conta/configuracoes">Editar perfil, endereços e segurança</Link></p>
 
         <h2 className="conta-tit">Últimos pedidos</h2>
         {pedidos?.length ? (
@@ -47,8 +44,6 @@ export default async function Conta({ searchParams }: { searchParams: Promise<{ 
           <p className="nota">Você ainda não fez pedidos.</p>
         )}
         <p className="nota"><Link href="/conta/pedidos">Ver histórico completo</Link></p>
-
-        <form action={sair}><button type="submit" className="btn btn-o">Sair</button></form>
       </div>
     </main>
   );

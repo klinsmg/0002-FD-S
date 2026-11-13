@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { temSenha } from '@/lib/admin';
 import { createClient } from '@/lib/supabase/server';
 
 // CSV dos relatórios (lê as views; só admin). Separador ";" e decimal com vírgula, com BOM: abre certo no Excel em português.
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
   if (perfil?.role !== 'admin') return new NextResponse('Não encontrado', { status: 404 });
 
   const { data: nivel } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (nivel?.currentLevel !== 'aal2') return new NextResponse('2FA necessário', { status: 403 });
+  if (nivel?.currentLevel !== 'aal2' || !temSenha(nivel.currentAuthenticationMethods)) return new NextResponse('2FA necessário', { status: 403 });
 
   const tipo = request.nextUrl.searchParams.get('tipo');
   let cab: string[] = [], linhas: unknown[][] = [];

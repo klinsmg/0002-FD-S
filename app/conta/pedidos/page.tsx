@@ -9,10 +9,11 @@ export default async function Pedidos() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  // RLS: só os pedidos do próprio cliente (e os itens/extras deles). Limite de 100 para não pesar a página.
+  // Filtra pelo dono: o RLS deixa o ADMIN ler todos os pedidos, e aqui é a área pessoal. Só os pedidos do próprio cliente (e os itens/extras deles). Limite de 100 para não pesar a página.
   const { data: pedidos } = await supabase
     .from('orders')
     .select('id, order_number, order_type, status, subtotal_cents, delivery_fee_cents, discount_cents, total_cents, has_price_pending, created_at, order_items(id, product_name, variant_label, quantity, doneness, notes, total_price_cents, price_pending, order_item_extras(name, quantity))')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(100);
 

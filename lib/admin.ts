@@ -16,7 +16,17 @@ export async function adminLogado() {
   if (!user) redirect('/admin/login');
   const { data: perfil } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
   if (perfil?.role !== 'admin') notFound();
+  // O painel é só e-mail+senha(+TOTP): sessão aberta por Google/link (sem 'password' no amr) não vale, mesmo que o e-mail seja de um admin.
+  if (!(await entrouComSenha(supabase))) redirect('/admin/login');
   return { supabase, user };
+}
+
+// amr pode vir como texto ou como { method }
+export const temSenha = (m?: (string | { method: string })[]) => !!m?.some(x => (typeof x === 'string' ? x : x.method) === 'password');
+
+export async function entrouComSenha(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  return temSenha(data?.currentAuthenticationMethods);
 }
 
 // Para onde mandar um admin que ainda não está em aal2: tem fator TOTP verificado -> código; não tem -> ativar 2FA.

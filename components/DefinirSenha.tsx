@@ -29,8 +29,14 @@ export default function DefinirSenha() {
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault(); setOcupado(true); setErro('');
-    await createClient().auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/admin/senha` });
-    setOcupado(false); setFase('enviado'); // mesma resposta exista a conta ou não
+    const { error } = await createClient().auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/admin/senha` });
+    setOcupado(false);
+    // limite de envio / falha do serviço de e-mail não dependem da conta existir, então podem ser mostrados; o resto responde igual
+    if (error && (error.status === 429 || error.status === 500 || /rate|limit|smtp|sending/i.test(error.message))) {
+      setErro(error.status === 429 || /rate|limit/i.test(error.message) ? 'Limite de envios do Supabase atingido. Aguarde alguns minutos (ou configure um SMTP próprio).' : 'O Supabase não conseguiu enviar o e-mail (verifique o SMTP).');
+      return;
+    }
+    setFase('enviado'); // mesma resposta exista a conta ou não
   }
 
   async function salvar(e: React.FormEvent) {

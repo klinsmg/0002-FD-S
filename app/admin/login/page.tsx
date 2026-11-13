@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { temSenha } from '@/lib/admin';
 import { createClient } from '@/lib/supabase/server';
 import { entrar } from './actions';
 
@@ -11,7 +12,7 @@ export default async function AdminLogin({ searchParams }: { searchParams: Promi
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
     const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (data?.currentLevel === 'aal2') redirect('/admin');
+    if (data?.currentLevel === 'aal2' && temSenha(data.currentAuthenticationMethods)) redirect('/admin');
   }
   return (
     <main>

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { exigirAdmin } from '@/lib/admin';
 
-const menu = [['Painel', '/admin'], ['Pedidos', '/admin/pedidos'], ['Produtos', '/admin/produtos'], ['Categorias', '/admin/categorias'], ['Relatórios', '/admin/relatorios'], ['Segurança', '/admin/seguranca']] as const;
+const menu = [['Painel', '/admin'], ['Pedidos', '/admin/pedidos'], ['Produtos', '/admin/produtos'], ['Categorias', '/admin/categorias'], ['Relatórios', '/admin/relatorios'], ['Configurações', '/admin/configuracoes']] as const;
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await exigirAdmin();
