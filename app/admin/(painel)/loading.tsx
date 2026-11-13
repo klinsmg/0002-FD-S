@@ -7,7 +7,7 @@ export default function Carregando() {
         <div className="skel skel-tit" />
       </header>
       <div className="wrap adm-caixa">
-        <div className="adm-kpis">{[0, 1, 2].map(i => <div key={i} className="skel skel-kpi" />)}</div>
+        <div className="adm-kpis">{[0, 1, 2, 3].map(i => <div key={i} className="skel skel-kpi" />)}</div>
         {[0, 1, 2, 3, 4, 5].map(i => <div key={i} className="skel skel-linha" />)}
       </div>
     </main>
