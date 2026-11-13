@@ -1,17 +1,16 @@
-import Link from 'next/link';
 import { exigirAdmin } from '@/lib/admin';
+import MenuArea from '@/components/MenuArea';
 
 const menu = [['Painel', '/admin'], ['Loja', '/admin/loja'], ['Pedidos', '/admin/pedidos'], ['Produtos', '/admin/produtos'], ['Categorias', '/admin/categorias'], ['Relatórios', '/admin/relatorios'], ['Configurações', '/admin/configuracoes']] as const;
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await exigirAdmin();
   return (
-    <>
-      <nav className="wrap conta-menu" aria-label="Painel administrativo">
-        {menu.map(([t, h]) => <Link key={h} href={h}>{t}</Link>)}
+    <div className="area area-adm">
+      <MenuArea itens={menu} rotulo="Painel administrativo">
         <form action="/admin/logout" method="post"><button type="submit">Sair</button></form>
-      </nav>
+      </MenuArea>
       {children}
-    </>
+    </div>
   );
 }

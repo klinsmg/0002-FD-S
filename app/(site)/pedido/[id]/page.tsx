@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import LimparCarrinho from '@/components/LimparCarrinho';
-import { createClient } from '@/lib/supabase/server';
+import { usuarioAtual } from '@/lib/supabase/server';
+import AtualizarSozinho from '@/components/AtualizarSozinho';
 import { PONTO, STATUS, TIPO, data, reais } from '@/lib/conta';
 import { info } from '@/lib/info';
 
@@ -13,8 +14,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export default async function Pedido({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!UUID.test(id)) notFound();
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { supabase, user } = await usuarioAtual();
   if (!user) redirect('/login');
 
   const { data: p } = await supabase
@@ -26,6 +26,11 @@ export default async function Pedido({ params }: { params: Promise<{ id: string 
   if (!p) notFound();
 
   const end = p.delivery_address as Record<string, string> | null;
+  // andamento: Recebido → Em preparo → Pronto → (Saiu para entrega) → Entregue/Retirado
+  const passos = p.order_type === 'delivery' ? ['Recebido', 'Em preparo', 'Pronto', 'Saiu para entrega', 'Entregue'] : ['Recebido', 'Em preparo', 'Pronto', 'Retirado'];
+  const ETAPA: Record<string, number> = { pending: 0, confirmed: 0, preparing: 1, ready: 2, out_for_delivery: 3, delivered: passos.length - 1 };
+  const etapa = ETAPA[p.status] ?? -1;
+  const encerrado = p.status === 'delivered' || p.status === 'cancelled';
   const msg = [
     `*Pedido #${p.order_number} – MDogão Itapevi*`, '', `*Cliente:* ${p.customer_name}`,
     p.order_type === 'delivery' && end ? `*Entrega:* ${end.street}, ${end.number}${end.complement ? ` – ${end.complement}` : ''} – ${end.district} – ${end.city}/${end.state}` : '*Retirada na loja*',
@@ -37,12 +42,21 @@ export default async function Pedido({ params }: { params: Promise<{ id: string 
   return (
     <main>
       <LimparCarrinho />
+      {!encerrado && <AtualizarSozinho segundos={30} />}
       <header className="pg-cab wrap">
         <p className="script">pedido recebido</p>
         <h1>Pedido <em>#{p.order_number}</em></h1>
         <p>{data(p.created_at)} · {TIPO[p.order_type] ?? p.order_type} · {STATUS[p.status] ?? p.status}</p>
       </header>
       <div className="wrap conta-caixa">
+        {p.status === 'cancelled' ? (
+          <p className="nota" role="status"><span className="st st-cancelled">Cancelado</span> Este pedido foi cancelado. Dúvidas? Fale com a loja pelo WhatsApp.</p>
+        ) : (
+          <ol className="trilha" style={{ '--n': passos.length } as React.CSSProperties} aria-label="Andamento do pedido">
+            {passos.map((t, i) => <li key={t} className={i <= etapa ? 'feito' : undefined} aria-current={i === etapa ? 'step' : undefined}>{t}</li>)}
+          </ol>
+        )}
+        {!encerrado && <p className="nota">Esta página se atualiza sozinha.</p>}
         <ul className="canais">
           {p.order_items.map(i => (
             <li key={i.id}>
@@ -61,8 +75,12 @@ export default async function Pedido({ params }: { params: Promise<{ id: string 
           <b>Total {reais(p.total_cents)}{p.has_price_pending ? ' + itens a confirmar' : ''}</b>
         </p>
 
-        <p className="nota">Seu pedido foi registrado. Para a loja começar o preparo e combinar pagamento{p.order_type === 'delivery' ? ' e taxa de entrega' : ''}, envie-o pelo WhatsApp:</p>
-        <a className="btn btn-p" href={`https://wa.me/${info.wa}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener noreferrer">Enviar pelo WhatsApp</a>
+        {p.status === 'pending' && (
+          <>
+          <p className="nota">Seu pedido foi registrado. Para a loja começar o preparo e combinar pagamento{p.order_type === 'delivery' ? ' e taxa de entrega' : ''}, envie-o pelo WhatsApp:</p>
+          <a className="btn btn-p" href={`https://wa.me/${info.wa}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener noreferrer">Enviar pelo WhatsApp</a>
+          </>
+        )}
         <p className="nota"><Link href="/conta/pedidos">Ver todos os meus pedidos</Link></p>
       </div>
     </main>

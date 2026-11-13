@@ -31,16 +31,19 @@ export default async function Conta() {
 
         <h2 className="conta-tit">Últimos pedidos</h2>
         {pedidos?.length ? (
-          <ul className="canais">
+          <ul className="ped-lista">
             {pedidos.map(p => (
               <li key={p.id}>
-                <b>Pedido #{p.order_number} · {data(p.created_at)}</b>
-                <span>{STATUS[p.status] ?? p.status} · {p.has_price_pending ? `${reais(p.total_cents)} + itens a confirmar` : reais(p.total_cents)}</span>
+                <Link href={`/pedido/${p.id}`}>
+                  <b>Pedido #{p.order_number}</b>
+                  <span className="val">{reais(p.total_cents)}{p.has_price_pending ? ' +' : ''}</span>
+                  <small>{data(p.created_at)} · <span className={`st st-${p.status}`}>{STATUS[p.status] ?? p.status}</span></small>
+                </Link>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="nota">Você ainda não fez pedidos.</p>
+          <p className="nota">Você ainda não fez pedidos. <Link href="/cardapio">Ver o cardápio</Link></p>
         )}
         <p className="nota"><Link href="/conta/pedidos">Ver histórico completo</Link></p>
       </div>
