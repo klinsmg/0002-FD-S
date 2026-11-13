@@ -45,11 +45,14 @@ p{margin:0 0 16px}
 .marca{display:block;width:56px;height:56px;flex:none}
 .marca img{width:56px;height:56px;object-fit:contain}
 .desk{display:none}
-.topo-cta{margin-left:auto;min-height:40px;padding:0 14px;font-size:13px;white-space:nowrap;transition:opacity .25s,transform .25s,visibility .25s}
+.topo-cta{margin-left:auto;min-height:40px;padding:0 14px;font-size:13px;white-space:nowrap;
+  transition:opacity .55s cubic-bezier(.22,1,.36,1),transform .55s cubic-bezier(.22,1,.36,1),visibility 0s,background .18s,box-shadow .18s,border-color .18s}
 .topo-cta~.menu-btn{margin-left:0}
-/* página com o botão da hero: o do cabeçalho só aparece quando aquele sai da tela (classe .fora, ver CtaTopo) */
-body:has([data-cta-hero]) .topo-cta:not(.fora){opacity:0;visibility:hidden;transform:translateY(-6px)}
-@media(prefers-reduced-motion:reduce){.topo-cta{transition:none}}
+/* página com o botão da hero: o do cabeçalho só aparece quando aquele sai da tela (classe .fora, ver CtaTopo).
+   Entra e sai com fade + leve deslize; a visibilidade só some depois do fade (não corta a animação de saída). */
+body:has([data-cta-hero]) .topo-cta:not(.fora){opacity:0;visibility:hidden;transform:translateY(-10px) scale(.94);pointer-events:none;
+  transition:opacity .4s ease,transform .4s ease,visibility 0s linear .4s}
+@media(prefers-reduced-motion:reduce){.topo-cta,body:has([data-cta-hero]) .topo-cta:not(.fora){transition:opacity .2s linear,visibility 0s linear .2s;transform:none}}
 .menu-btn{margin-left:auto;width:48px;height:48px;border:0;border-radius:12px;cursor:pointer;background:
   linear-gradient(var(--destaque),var(--destaque)) center 16px/24px 2px no-repeat,
   linear-gradient(var(--destaque),var(--destaque)) center 23px/24px 2px no-repeat,

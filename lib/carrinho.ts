@@ -241,7 +241,11 @@ export function carrinho(cfg: Cfg): any {
         if (!r.ok) return;
         const j = await r.json();
         if (Array.isArray(j.enderecos)) this.salvos = j.enderecos.slice(0, 10);
-      } catch { /* sem rede: segue sem endereços salvos */ }
+        // logado: o nome vem da conta (não pergunta de novo) e o endereço padrão já vem preenchido, se não houver outro digitado
+        if (typeof j.nome === 'string' && !this.nome.trim()) { this.nome = limpa(j.nome).slice(0, 60); this.nomeTmp = this.nome; }
+        const padrao = this.salvos.find((x: any) => x.is_default);
+        if (padrao && !this.a.rua.trim() && !this.a.cep.trim()) { this.salvoId = padrao.id; this.usarSalvo(); }
+      } catch { /* sem rede: segue sem os dados da conta */ }
     },
     usarSalvo() {
       const s = this.salvos.find((x: any) => x.id === this.salvoId); if (!s) return;
