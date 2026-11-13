@@ -75,7 +75,7 @@ const campoEnd = (foco?: string) => (
       <label>Número<input type="text" autoComplete="off" maxLength={10} data-num="" {...A({ 'x-model': 'a.num' })} /></label>
       <label>Complemento<input type="text" autoComplete="address-line2" maxLength={60} {...A({ 'x-model': 'a.comp' })} /></label>
     </div>
-    <label>Bairro<input type="text" maxLength={100} {...A({ 'x-model': 'a.bairro' })} /></label>
+    <label>Bairro<input type="text" autoComplete="address-level3" maxLength={100} {...A({ 'x-model': 'a.bairro' })} /></label>
     <div className="duas uf">
       <label>Cidade<input type="text" autoComplete="address-level2" maxLength={100} {...A({ 'x-model': 'a.cidade' })} /></label>
       <label>UF<input type="text" autoComplete="address-level1" maxLength={2} {...A({ 'x-model': 'a.uf' })} /></label>

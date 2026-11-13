@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { limpa } from '@/lib/conta';
+import { LIMITE_ENDERECOS, limpa } from '@/lib/conta';
 import { createClient } from '@/lib/supabase/server';
 
 // Endereços do cliente. Cada ação exige sessão, usa o cliente do USUÁRIO (RLS) e ainda filtra por user_id.
@@ -38,6 +38,9 @@ export async function createAddress(f: FormData) {
   const { supabase, user } = await logado();
   const e = lerEndereco(f);
   if (!e) redirect(erroEm('invalido'));
+  // limite checado aqui (mensagem clara) e no banco (gatilho addresses_limit), que é a trava final
+  const { count } = await supabase.from('addresses').select('id', { count: 'exact', head: true }).eq('user_id', user.id);
+  if ((count ?? 0) >= LIMITE_ENDERECOS) redirect(erroEm('limite'));
   const { error } = await supabase.from('addresses').insert({ ...e, user_id: user.id });
   if (error) redirect(erroEm(error.code === '23514' ? 'limite' : 'falha'));
   atualizar();

@@ -15,9 +15,12 @@ export const limpa = (v: FormDataEntryValue | null, max: number) =>
   String(v ?? '').replace(/[\p{Cc}\p{Cf}]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 
 // Mensagens da página (vêm como ?erro=codigo; só códigos conhecidos são exibidos)
+// mesmo valor do gatilho addresses_limit no banco (migration 009)
+export const LIMITE_ENDERECOS = 5;
+
 export const ERROS: Record<string, string> = {
   invalido: 'Confira os campos: CEP com 8 dígitos, UF com 2 letras e os campos obrigatórios preenchidos.',
-  limite: 'Você já tem 10 endereços salvos. Remova um para adicionar outro.',
+  limite: `Você chegou ao limite de ${LIMITE_ENDERECOS} endereços. Remova um para adicionar outro.`,
   falha: 'Não foi possível salvar agora. Tente novamente.',
   perfil: 'Confira o nome e o telefone (8 a 20 dígitos).',
 };

@@ -11,3 +11,6 @@ out
 next-env.d.ts
 .playwright-mcp
 npm-debug.log*
+
+# backups do banco (dados de clientes): nunca versionar
+supabase/backups/

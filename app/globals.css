@@ -196,6 +196,8 @@ footer.rodape-min{padding:22px 16px 26px}footer.rodape-min .nav2{margin:0 0 8px}
 .conta-acoes a,.conta-acoes button{color:var(--destaque);background:none;border:0;padding:0;font:inherit;cursor:pointer;text-decoration:underline}
 .conta-check{display:flex;align-items:center;gap:10px}
 .form .conta-check input{width:auto}
+.form-grupo{display:grid;gap:inherit;border:0;margin:0;padding:0;min-width:0}
+.form-grupo:disabled{opacity:.55}
 .conta-pedido{margin-top:28px}
 .conta-pedido .canais small{flex-basis:100%}
 .adm-caixa{padding-bottom:90px}

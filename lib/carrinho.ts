@@ -1,5 +1,7 @@
 // Carrinho do cardápio (Alpine.data). Serve só para o cliente ter noção de valores e montar o pedido:
 // nada é cobrado aqui; o pedido segue como mensagem para o WhatsApp da loja, onde o pagamento é combinado.
+import { MSG_CEP, buscarCep } from './viacep';
+
 type Extra = { n: string; p: number | null; q: number };
 type Linha = { k: string; n: string; v: string; p: number | null; q: number; obs: string; ponto?: string; ex?: Extra[] };
 type Cfg = { ids: string[]; paiDaSub: Record<string, string>; wa: string; molhos: { n: string; p: number | null; t: string }[] };
@@ -153,20 +155,15 @@ export function carrinho(cfg: Cfg): any {
       this.buscarCep(d);
     },
     async buscarCep(d: string) {
-      this.cepMsg = 'Buscando endereço…';
-      const ainda = () => this.a.cep.replace(/\D/g, '') === d;
-      try {
-        const r = await fetch(`https://viacep.com.br/ws/${d}/json/`, { signal: AbortSignal.timeout(7000) });
-        if (!r.ok) throw new Error('http');
-        const j = await r.json();
-        if (!ainda()) return;
-        if (!j || j.erro) { this.cepMsg = 'CEP não encontrado. Preencha o endereço abaixo.'; return; }
-        const t = (v: unknown) => (typeof v === 'string' ? limpa(v).replace(/[<>]/g, '').slice(0, 100) : ''); // resposta de terceiro: nunca confiar
-        this.a.rua = t(j.logradouro) || this.a.rua; this.a.bairro = t(j.bairro) || this.a.bairro;
-        this.a.cidade = t(j.localidade) || this.a.cidade; this.a.uf = t(j.uf).slice(0, 2).toUpperCase() || this.a.uf;
-        this.cepMsg = 'Endereço encontrado. Confira e informe o número.';
-        setTimeout(() => document.querySelector<HTMLElement>(`${this.passo ? '.nome-modal' : '.dados'} [data-num]`)?.focus(), 60);
-      } catch { if (ainda()) this.cepMsg = 'Não foi possível buscar o CEP agora. Preencha o endereço abaixo.'; }
+      this.cepMsg = MSG_CEP.buscando;
+      const r = await buscarCep(d);
+      if (this.a.cep.replace(/\D/g, '') !== d) return; // o cliente já mudou o CEP enquanto buscava
+      if (!r.ok) { this.cepMsg = MSG_CEP[r.motivo]; return; }
+      const e = r.end;
+      this.a.rua = e.rua || this.a.rua; this.a.bairro = e.bairro || this.a.bairro;
+      this.a.cidade = e.cidade || this.a.cidade; this.a.uf = e.uf || this.a.uf;
+      this.cepMsg = e.bairro || this.a.bairro ? MSG_CEP.ok : MSG_CEP.okSemBairro;
+      setTimeout(() => document.querySelector<HTMLElement>(`${this.passo ? '.nome-modal' : '.dados'} [data-num]`)?.focus(), 60);
     },
     get endLinhas(): string[] {
       const a = this.a, c = a.comp.trim();
