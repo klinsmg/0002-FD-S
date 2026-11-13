@@ -21,10 +21,15 @@ export default function ConviteAvaliacao({ google }: { google: string }) {
     // espera a página assentar antes de perguntar
     const t = setTimeout(async () => {
       const c = await abrirConvite().catch(() => null);
-      if (c) { setConvite(c); dlg.current?.showModal(); }
+      if (c) setConvite(c);
     }, 1500);
     return () => clearTimeout(t);
   }, []);
+
+  // abre só depois que o <dialog> foi desenhado (antes disso o ref é nulo e o convite se perdia sem aparecer)
+  useEffect(() => {
+    if (convite && dlg.current && !dlg.current.open) dlg.current.showModal();
+  }, [convite]);
 
   // fechar (X, Esc ou "Agora não"): no 1º passo conta como recusa; depois de avaliar, só fecha
   function fechar() {
