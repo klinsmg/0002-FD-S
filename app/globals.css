@@ -154,7 +154,14 @@ address a:hover{color:var(--destaque)}
 
 /* ===== rodapé (estrutura do template: logo, chamada, redes, navegação, legal) ===== */
 footer{background:var(--fundo-fundo);border-top:1px solid var(--linha);text-align:center;padding:50px 16px 30px}
-footer.rodape-min{padding:22px 16px 26px}footer.rodape-min .nav2{margin:0 0 8px}
+footer.rodape-min{padding:14px 16px 16px}
+/* linha final de todo rodapé: copyright (esq.) · links jurídicos (centro) · assinatura (dir.) */
+.rodape-linha{width:min(1180px,100%);margin:0 auto;display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 16px}
+.rodape-linha .nav2{grid-column:1/-1;order:-1;margin:0}
+.rodape-linha .legal{text-align:left}
+.rodape-linha .credito{text-align:right;white-space:nowrap}
+@media(min-width:900px){.rodape-linha{grid-template-columns:1fr auto 1fr}.rodape-linha .nav2{grid-column:auto;order:0}}
+footer:not(.rodape-min) .rodape-linha{margin-top:6px;padding-top:14px;border-top:1px solid var(--linha)}
 .logo-s{display:flex;justify-content:center}
 .fome{font:400 28px var(--fonte-titulo);letter-spacing:1px;margin:18px 0;color:var(--creme)}
 .fome span{color:var(--destaque)}
@@ -167,9 +174,7 @@ footer.rodape-min{padding:22px 16px 26px}footer.rodape-min .nav2{margin:0 0 8px}
 .nav1 a:hover,.nav2 a:hover{color:var(--destaque)}
 .end{font-size:14px;color:var(--texto);margin-bottom:18px}
 .legal{font-size:12px;color:var(--texto-suave);line-height:1.6;margin:0}
-.legal-row{width:min(1180px,100%);margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:10px}
 .credito{font-size:10px;letter-spacing:.5px;color:var(--texto-mudo)}
-@media(min-width:760px){.legal-row{flex-direction:row;justify-content:space-between;text-align:left}.legal-row .legal{flex:1;text-align:center;padding-left:110px}.credito{align-self:flex-end}}
 
 /* ===== cookies ===== */
 .cookies{position:fixed;left:12px;right:12px;bottom:12px;z-index:60;max-width:760px;margin-inline:auto;background:var(--superficie);border:1px solid var(--linha);border-radius:20px;padding:16px 20px;display:flex;gap:16px;align-items:center;box-shadow:0 20px 50px -10px color-mix(in srgb,var(--sombra) 80%,transparent)}
@@ -700,11 +705,7 @@ body:has(.nf) .topo-wrap{display:none!important}
 .nf-logo{position:relative;z-index:2;align-self:center;display:block;line-height:0}
 .nf-logo img{width:clamp(52px,9svh,72px);height:auto}
 .nf-txt{margin-block:auto}
-body:has(.nf) .legal-row{align-items:flex-start;margin-top:6px}
-body:has(.nf) .legal-row .legal{text-align:left;padding-left:0}
-body:has(.nf) footer{padding:10px 16px 14px}
-body:has(.nf) footer>:not(.nav2):not(.legal-row),body:has(.nf) .credito{display:none}
-body:has(.nf) footer .nav2{margin-bottom:0}
+
 body:has(.nf){min-height:100svh;display:flex;flex-direction:column}
 body:has(.nf) #conteudo{flex:1;display:flex;flex-direction:column}
 .nf{flex:1;min-height:0;padding:clamp(14px,4svh,48px) 6vw}

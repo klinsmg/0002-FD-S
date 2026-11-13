@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Logo from './Logo';
+import RodapeLinha from './RodapeLinha';
 import { nav } from './links';
 import { info, wa, mapa } from '@/lib/info';
 
@@ -24,16 +25,8 @@ export default function Footer() {
         ))}
       </div>
       <div className="nav1">{nav.map(([t, h]) => <Link key={h} href={h}>{t}</Link>)}</div>
-      <div className="nav2">
-        <Link href="/politica-de-privacidade">Política de privacidade</Link>
-        <Link href="/termos-de-uso">Termos de uso</Link>
-        <Link href="/politica-de-cookies">Política de cookies</Link>
-      </div>
       <p className="end">{info.rua} · {info.bairro}<br />{info.horarios.map(([d, h]) => `${d}: ${h}`).join(' · ')}</p>
-      <div className="legal-row">
-        <p className="legal">© {new Date().getFullYear()} MDogão Itapevi · Desde 1995.</p>
-        <small className="credito">MakeByKlinsmann</small>
-      </div>
+      <RodapeLinha />
     </footer>
   );
 }
