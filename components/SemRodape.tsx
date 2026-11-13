@@ -2,12 +2,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-// No login (/login), na área do cliente (/conta/*) e no painel (/admin/*) o rodapé institucional dá lugar a um rodapé
-// mínimo, só com os links jurídicos (privacidade, cookies, termos). O resto do site segue com o rodapé completo.
-const SEM = ['/login', '/conta', '/admin'];
+// Painel (/admin/*, inclusive login e 2FA do admin): sem rodapé nenhum.
+// Login (/login) e área do cliente (/conta/*): rodapé mínimo, só com os links jurídicos. O resto do site: rodapé completo.
+const SEM = ['/login', '/conta'];
+const dentro = (p: string, r: string) => p === r || p.startsWith(r + '/');
 export default function SemRodape({ children }: { children: React.ReactNode }) {
   const p = usePathname();
-  if (!SEM.some(r => p === r || p.startsWith(r + '/'))) return children;
+  if (dentro(p, '/admin')) return null;
+  if (!SEM.some(r => dentro(p, r))) return children;
   return (
     <footer className="rodape-min">
       <nav className="nav2" aria-label="Links jurídicos">
