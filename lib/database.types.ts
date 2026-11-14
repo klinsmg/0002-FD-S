@@ -722,6 +722,14 @@ export type Database = {
         }[]
       }
       is_admin: { Args: never; Returns: boolean }
+      order_status_ok: {
+        Args: {
+          p_de: Database["public"]["Enums"]["order_status"]
+          p_para: Database["public"]["Enums"]["order_status"]
+          p_tipo: string
+        }
+        Returns: boolean
+      }
       review_decline: { Args: { p_order_id: string }; Returns: undefined }
       review_google_click: { Args: never; Returns: undefined }
       review_invite: {

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { PAGAMENTO, PROXIMOS, enderecoTexto, exigirAdmin, hojeSP, type Status } from '@/lib/admin';
+import { PAGAMENTO, proximos, enderecoTexto, exigirAdmin, hojeSP, type Status } from '@/lib/admin';
 import { PONTO, STATUS, reais } from '@/lib/conta';
 import { moverPedido } from '@/app/admin/(painel)/actions';
 import Confirmar from '@/components/Confirmar';
@@ -16,7 +16,8 @@ const COLUNAS: { t: string; s: Status[] }[] = [
   { t: 'Entregue / Cancelado', s: ['delivered', 'cancelled'] },
 ];
 // rótulo do botão que avança o pedido
-const ACAO: Partial<Record<Status, string>> = { confirmed: 'Confirmar', preparing: 'Começar preparo', ready: 'Pronto', out_for_delivery: 'Saiu para entrega', delivered: 'Entregue' };
+// (Entregue só aparece em retirada: entrega é confirmada pelo entregador)
+const ACAO: Partial<Record<Status, string>> = { preparing: 'Começar preparo', ready: 'Pronto', out_for_delivery: 'Saiu para entrega', delivered: 'Retirado' };
 const MSG: Record<string, string> = { fluxo: 'Esse pedido já mudou de etapa (outro aparelho?). O quadro foi atualizado.', invalido: 'Ação inválida.' };
 
 const CAMPOS = 'id, order_number, created_at, customer_name, customer_phone, order_type, status, notes, delivery_address, payment_method, total_cents, has_price_pending, order_items(id, quantity, product_name, variant_label, doneness, notes, order_item_extras(name, quantity))';
@@ -52,7 +53,8 @@ export default async function Loja({ searchParams }: { searchParams: Promise<{ e
                 {lista.length === 0 && <p className="nota">Nada aqui.</p>}
                 {lista.map(p => {
                   const entrega = p.order_type === 'delivery';
-                  const proximos = PROXIMOS[p.status].filter(s => s !== 'cancelled' && (s !== 'out_for_delivery' || entrega) && !(p.status === 'pending' && s === 'preparing'));
+                  const seguintes = proximos(p.status, p.order_type);
+                  const avancar = seguintes.filter(s => s !== 'cancelled');
                   return (
                     <article key={p.id} className={`ped ped-${p.status}`}>
                       <header className="ped-cab">
@@ -60,7 +62,7 @@ export default async function Loja({ searchParams }: { searchParams: Promise<{ e
                         <span>{hora(p.created_at)}{p.status !== 'delivered' && p.status !== 'cancelled' ? ` · há ${minutos(p.created_at)} min` : ''}</span>
                         <span className={`ped-tipo ${entrega ? 'ent' : 'ret'}`}>{entrega ? 'Entrega' : 'Retirada'}</span>
                       </header>
-                      {(p.status === 'confirmed' || p.status === 'cancelled' || p.status === 'delivered') && <p className="ped-st">{STATUS[p.status]}</p>}
+                      {(p.status === 'confirmed' || p.status === 'cancelled' || p.status === 'delivered') && <p className="ped-st">{p.status === 'delivered' && !entrega ? 'Retirado' : STATUS[p.status]}</p>}
                       <p className="ped-cli">{p.customer_name}{p.customer_phone ? ` · ${p.customer_phone}` : ''}</p>
                       <ul className="ped-itens">
                         {p.order_items.map(i => (
@@ -75,7 +77,8 @@ export default async function Loja({ searchParams }: { searchParams: Promise<{ e
                       {entrega && <p className="ped-end">{enderecoTexto(p.delivery_address) || 'Endereço não informado'}</p>}
                       <p className="ped-total"><span>{p.payment_method ? PAGAMENTO[p.payment_method] ?? p.payment_method : 'Pagamento a definir'}</span><b>{reais(p.total_cents)}{p.has_price_pending ? ' +' : ''}</b></p>
                       <div className="ped-acoes">
-                        {proximos.map(s => (
+                        {p.status === 'out_for_delivery' && <p className="ped-st">Aguardando o entregador confirmar a entrega.</p>}
+                        {avancar.map(s => (
                           <form key={s} action={moverPedido}>
                             <input type="hidden" name="id" value={p.id} /><input type="hidden" name="para" value={s} />
                             <BotaoEnviar pendente="…" className="btn btn-p">{ACAO[s]}</BotaoEnviar>
@@ -83,7 +86,7 @@ export default async function Loja({ searchParams }: { searchParams: Promise<{ e
                         ))}
                         <a className="btn btn-o" href={`/admin/imprimir/${p.id}`} target="_blank" rel="noopener">Imprimir</a>
                         <Link className="ped-link" href={`/admin/pedidos/${p.id}`}>Detalhes</Link>
-                        {PROXIMOS[p.status].includes('cancelled') && (
+                        {seguintes.includes('cancelled') && (
                           <Confirmar action={moverPedido} mensagem={`Cancelar o pedido #${p.order_number}?`} detalhe="O cliente vê o pedido como cancelado e ele sai do faturamento." rotulo="Cancelar pedido">
                             <input type="hidden" name="id" value={p.id} /><input type="hidden" name="para" value="cancelled" />
                             <button type="submit" className="ped-link ped-cancelar">Cancelar</button>

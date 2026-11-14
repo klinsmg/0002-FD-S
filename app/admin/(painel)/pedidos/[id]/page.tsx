@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { PAGAMENTO, STATUS_LISTA, doisDec, exigirAdmin } from '@/lib/admin';
+import { PAGAMENTO, doisDec, exigirAdmin, proximos } from '@/lib/admin';
 import { PONTO, STATUS, TIPO, data, reais } from '@/lib/conta';
 import { atualizarPedido, definirValores } from '@/app/admin/(painel)/actions';
 import Confirmar from '@/components/Confirmar';
@@ -9,7 +9,7 @@ import BotaoEnviar from '@/components/BotaoEnviar';
 export const metadata = { title: 'Pedido' };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MSG: Record<string, string> = {
-  invalido: 'Status ou pagamento inválido.', falha: 'Não foi possível salvar. Tente novamente.',
+  invalido: 'Status ou pagamento inválido.', fluxo: 'Esse status não vem agora (o pedido segue Novo → Em preparo → Pronto, ou ele já mudou em outro aparelho).', falha: 'Não foi possível salvar. Tente novamente.',
   valor: 'Confira os valores (use vírgula: 8,00).', fechado: 'Só dá para mudar taxa/desconto de pedido aberto (recebido ou confirmado).',
 };
 
@@ -73,7 +73,8 @@ export default async function PedidoAdmin({ params, searchParams }: { params: Pr
           <input type="hidden" name="id" value={p.id} />
           <label htmlFor="o-status">Status</label>
           <select id="o-status" name="status" defaultValue={p.status}>
-            {STATUS_LISTA.map(s => <option key={s} value={s}>{STATUS[s]}</option>)}
+            {/* só o status atual e os próximos permitidos (o servidor e o banco conferem de novo) */}
+            {[p.status, ...proximos(p.status, p.order_type)].map(s => <option key={s} value={s}>{s === 'delivered' && p.order_type !== 'delivery' ? 'Retirado' : STATUS[s]}</option>)}
           </select>
           <label htmlFor="o-pg">Forma de pagamento</label>
           <select id="o-pg" name="payment_method" defaultValue={p.payment_method ?? ''}>

@@ -6,17 +6,19 @@ import type { Database } from '@/lib/database.types';
 export type Status = Database['public']['Enums']['order_status'];
 export const STATUS_LISTA: Status[] = ['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled'];
 
-// Fluxo da loja: para onde cada status pode ir (conferido no servidor antes de gravar). "Saiu para entrega" só em pedido de entrega.
-export const PROXIMOS: Record<Status, Status[]> = {
-  pending: ['confirmed', 'preparing', 'cancelled'],
-  confirmed: ['preparing', 'cancelled'],
-  preparing: ['ready', 'cancelled'],
-  ready: ['out_for_delivery', 'delivered', 'cancelled'],
-  out_for_delivery: ['delivered', 'cancelled'],
-  delivered: [],
-  cancelled: [],
-};
-export const podeIr = (de: Status, para: Status, tipo: string) => PROXIMOS[de].includes(para) && (para !== 'out_for_delivery' || tipo === 'delivery');
+// Fluxo da loja (o banco confere o mesmo na migration 012, função order_status_ok):
+//   Novo -> Em preparo -> Pronto -> entrega: Saiu para entrega | retirada: Entregue ("Retirado").
+// "Entregue" de pedido de ENTREGA não sai do painel: só pelo fluxo do entregador (bloco 11).
+export function proximos(de: Status, tipo: string): Status[] {
+  switch (de) {
+    case 'pending': case 'confirmed': return ['preparing', 'cancelled'];
+    case 'preparing': return ['ready', 'cancelled'];
+    case 'ready': return [tipo === 'delivery' ? 'out_for_delivery' : 'delivered', 'cancelled'];
+    case 'out_for_delivery': return ['cancelled'];
+    default: return [];
+  }
+}
+export const podeIr = (de: Status, para: Status, tipo: string) => proximos(de, tipo).includes(para);
 
 // Endereço de entrega (jsonb do pedido) em uma linha
 export const enderecoTexto = (e: unknown) => {

@@ -19,8 +19,12 @@ export async function atualizarPedido(f: FormData) {
   const status = String(f.get('status') ?? '') as Status;
   const pg = String(f.get('payment_method') ?? '');
   if (!STATUS_LISTA.includes(status) || (pg && !(pg in PAGAMENTO))) redirect(`/admin/pedidos/${id}?erro=invalido`);
-  const { error } = await supabase.from('orders').update({ status, payment_method: pg || null, notes: limpa(f.get('notes'), 300) || null }).eq('id', id);
-  if (error) redirect(`/admin/pedidos/${id}?erro=falha`);
+  const { data: atual } = await supabase.from('orders').select('status, order_type').eq('id', id).maybeSingle();
+  if (!atual || (atual.status !== status && !podeIr(atual.status, status, atual.order_type))) redirect(`/admin/pedidos/${id}?erro=fluxo`);
+  // .eq('status', atual.status): se outro aparelho mudou no meio, não sobrescreve
+  const { data: salvo, error } = await supabase.from('orders').update({ status, payment_method: pg || null, notes: limpa(f.get('notes'), 300) || null }).eq('id', id).eq('status', atual.status).select('id');
+  if (error) redirect(`/admin/pedidos/${id}?erro=${error.message.includes('invalid_status_transition') ? 'fluxo' : 'falha'}`);
+  if (!salvo?.length) redirect(`/admin/pedidos/${id}?erro=fluxo`);
   atualizar('/admin', '/admin/pedidos', `/admin/pedidos/${id}`, '/admin/relatorios', '/conta', '/conta/pedidos', `/pedido/${id}`);
   redirect(`/admin/pedidos/${id}?ok=1`);
 }
