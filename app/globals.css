@@ -920,3 +920,17 @@ body:has(.cupons){background:#fff}
 .aval-estrelas output{white-space:nowrap}
 .aval .confirmar-det+.confirmar-det{margin-top:8px}
 @media(max-width:420px){.aval-estrelas label{width:40px;height:44px;font-size:30px}}
+
+/* tempo real: selo de conexão (texto + ponto, nunca só cor) e aviso de pedido novo nas telas do painel */
+.aovivo{display:inline-flex;align-items:center;gap:7px;font:700 13px var(--fonte-corpo);color:var(--texto-fraco);white-space:nowrap;vertical-align:middle}
+.aovivo::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.aovivo-vivo::before{background:#2fbf8a;box-shadow:0 0 0 0 #2fbf8a80;animation:aovivo-pulso 2s ease-out infinite}
+.aovivo-caiu{color:#e0a23a}
+@keyframes aovivo-pulso{to{box-shadow:0 0 0 7px #2fbf8a00}}
+.area-menu .aovivo{margin-left:auto;padding:0 10px}
+.area-menu .aovivo+form{margin-left:0}
+.aovivo-aviso{position:fixed;right:16px;bottom:16px;z-index:90;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px);margin:0;padding:12px 12px 12px 18px;border-radius:14px;background:var(--destaque);color:#130907;font-weight:800;box-shadow:0 10px 30px #0008;animation:aovivo-entra .25s ease-out}
+.aovivo-aviso a{color:inherit;text-decoration:underline}
+.aovivo-aviso button{min-width:44px;min-height:44px;border:0;background:none;font:800 22px var(--fonte-corpo);color:inherit;cursor:pointer}
+@keyframes aovivo-entra{from{opacity:0;transform:translateY(12px)}}
+@media(prefers-reduced-motion:reduce){.aovivo-vivo::before,.aovivo-aviso{animation:none}}

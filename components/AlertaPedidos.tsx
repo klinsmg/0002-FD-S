@@ -1,24 +1,20 @@
 'use client';
-import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
-const INTERVALO = 15000; // o quadro se atualiza a cada 15 s
 const CHAVE_SOM = 'loja-som';
 
-// Alerta de pedido novo no quadro da loja: atualiza o quadro sozinho e, quando chega um pedido "Novo" que ainda não
-// estava na tela, toca um bipe (se o som estiver ligado), vibra no celular, pisca o título da aba e mostra um aviso.
+// Alerta de pedido novo no quadro da loja: quando chega um pedido "Novo" que ainda não estava na tela, toca um bipe
+// (se o som estiver ligado), vibra no celular, pisca o título da aba e mostra um aviso.
 export default function AlertaPedidos({ novos }: { novos: { id: string; n: number }[] }) {
-  const router = useRouter();
   const vistos = useRef<Set<string> | null>(null);
   const audio = useRef<AudioContext | null>(null);
   const [som, setSom] = useState(false);
   const [aviso, setAviso] = useState<number[]>([]);
 
+  // o quadro é atualizado pelo AoVivo do layout do painel (tempo real); aqui só o alerta
   useEffect(() => {
     try { setSom(localStorage.getItem(CHAVE_SOM) === '1'); } catch {}
-    const t = setInterval(() => router.refresh(), INTERVALO);
-    return () => clearInterval(t);
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     if (!vistos.current) { vistos.current = new Set(novos.map(p => p.id)); return; } // primeira carga: nada é "novo"
@@ -72,7 +68,7 @@ export default function AlertaPedidos({ novos }: { novos: { id: string; n: numbe
       <button type="button" className={`btn ${som ? 'btn-p' : 'btn-o'}`} onClick={alternarSom} aria-pressed={som}>
         {som ? '🔔 Som ligado' : '🔕 Ligar som de pedido novo'}
       </button>
-      <span className="nota">Atualiza sozinho a cada 15 s.</span>
+      <span className="nota">Pedidos novos aparecem aqui na hora.</span>
       {aviso.length > 0 && (
         <p className="loja-aviso" role="alert">
           Novo pedido {aviso.map(n => `#${n}`).join(', ')}!

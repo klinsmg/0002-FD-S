@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import LimparCarrinho from '@/components/LimparCarrinho';
 import { usuarioAtual } from '@/lib/supabase/server';
-import AtualizarSozinho from '@/components/AtualizarSozinho';
+import AoVivo from '@/components/AoVivo';
 import ConviteAvaliacao from '@/components/ConviteAvaliacao';
 import { avaliarNoGoogle } from '@/lib/info';
 import { PONTO, STATUS, TIPO, data, reais } from '@/lib/conta';
@@ -35,7 +35,6 @@ export default async function Pedido({ params }: { params: Promise<{ id: string 
   return (
     <main>
       <LimparCarrinho />
-      {!encerrado && <AtualizarSozinho segundos={30} />}
       {p.status === 'delivered' && <ConviteAvaliacao google={avaliarNoGoogle} />}
       <header className="pg-cab wrap">
         <p className="script">pedido recebido</p>
@@ -50,7 +49,7 @@ export default async function Pedido({ params }: { params: Promise<{ id: string 
             {passos.map((t, i) => <li key={t} className={i <= etapa ? 'feito' : undefined} aria-current={i === etapa ? 'step' : undefined}>{t}</li>)}
           </ol>
         )}
-        {!encerrado && <p className="nota">Esta página se atualiza sozinha.</p>}
+        {!encerrado && <p className="nota"><AoVivo topico={`pedido:${p.id}`} /> Cada mudança no pedido aparece aqui na hora, sem recarregar.</p>}
         <ul className="canais">
           {p.order_items.map(i => (
             <li key={i.id}>
