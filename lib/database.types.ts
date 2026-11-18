@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_attempts: {
+        Row: {
+          action: string
+          blocked: boolean
+          created_at: string
+          device: string | null
+          id: number
+          ip: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          blocked?: boolean
+          created_at?: string
+          device?: string | null
+          id?: number
+          ip?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          blocked?: boolean
+          created_at?: string
+          device?: string | null
+          id?: number
+          ip?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       addresses: {
         Row: {
           city: string
@@ -665,6 +695,10 @@ export type Database = {
       }
     }
     Functions: {
+      access_check: {
+        Args: { p_action: string; p_device: string; p_ip: string }
+        Returns: boolean
+      }
       admin_set_order_amounts: {
         Args: {
           p_delivery_fee_cents: number

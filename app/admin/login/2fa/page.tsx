@@ -19,7 +19,7 @@ export default async function AdminLogin2fa({ searchParams }: { searchParams: Pr
         <p>Digite o código de 6 dígitos do app autenticador.</p>
       </header>
       <div className="wrap conta-caixa">
-        {erro && <p className="nota" role="alert">{erro === '2' ? 'Não foi possível iniciar a verificação. Tente novamente.' : 'Código inválido ou expirado.'}</p>}
+        {erro && <p className="nota" role="alert">{erro === '2' ? 'Não foi possível iniciar a verificação. Tente novamente.' : erro === 'bloqueado' ? 'Muitas tentativas seguidas. Por segurança, espere 15 minutos e tente de novo.' : 'Código inválido ou expirado.'}</p>}
         <form className="form" action={verificarCodigo}>
           <label htmlFor="a-cod">Código</label>
           <input id="a-cod" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} required autoFocus />

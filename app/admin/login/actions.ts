@@ -2,12 +2,14 @@
 import { redirect } from 'next/navigation';
 import { destinoMfa } from '@/lib/admin';
 import { createClient } from '@/lib/supabase/server';
+import { permitir } from '@/lib/protecao';
 
 // Etapa 1: e-mail + senha. A mensagem de erro é a mesma para senha errada e para quem não é admin (não revela quem é admin).
 export async function entrar(f: FormData) {
   const email = String(f.get('email') ?? '').trim().slice(0, 254);
   const password = String(f.get('password') ?? '').slice(0, 200);
   if (!email || !password) redirect('/admin/login?erro=1');
+  if (!(await permitir('login_admin'))) redirect('/admin/login?erro=bloqueado');
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -32,6 +34,7 @@ export async function verificarCodigo(f: FormData) {
   const { data: fatores } = await supabase.auth.mfa.listFactors();
   const fator = fatores?.totp.find(t => t.status === 'verified');
   if (!fator) redirect('/admin/seguranca');
+  if (!(await permitir('codigo_2fa'))) redirect('/admin/login/2fa?erro=bloqueado');
 
   const { data: desafio, error: e1 } = await supabase.auth.mfa.challenge({ factorId: fator.id });
   if (e1 || !desafio) redirect('/admin/login/2fa?erro=2');

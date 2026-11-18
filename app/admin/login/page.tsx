@@ -22,7 +22,7 @@ export default async function AdminLogin({ searchParams }: { searchParams: Promi
         <h1>Painel <em>MDogão</em></h1>
       </header>
       <div className="wrap conta-caixa">
-        {erro && <p className="nota" role="alert">E-mail ou senha inválidos.</p>}
+        {erro && <p className="nota" role="alert">{erro === 'bloqueado' ? 'Muitas tentativas seguidas. Por segurança, espere 15 minutos e tente de novo.' : 'E-mail ou senha inválidos.'}</p>}
         <form className="form" action={entrar}>
           <label htmlFor="a-email">E-mail</label>
           <input id="a-email" name="email" type="email" autoComplete="username" required maxLength={254} />

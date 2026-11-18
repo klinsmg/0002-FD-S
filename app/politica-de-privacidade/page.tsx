@@ -88,6 +88,7 @@ const secoes: Secao[] = [
         '**No seu navegador:** o pedido em andamento fica até você tocar em "Limpar pedido" ou limpar os dados do site no navegador.',
         '**Na conversa de WhatsApp da loja:** mantemos pelo tempo necessário para atender o pedido, resolver reclamações e cumprir obrigações legais e fiscais.',
         '**No provedor de hospedagem:** registros técnicos são mantidos pelo prazo definido por ele.',
+        '**Registros de segurança:** quando você faz um pedido ou alguém tenta entrar no painel da loja, guardamos o endereço IP, o código aleatório do cookie de segurança (disp), a conta (se logado) e a hora, para limitar tentativas repetidas e bloquear abusos (legítimo interesse e segurança, LGPD art. 7º, IX, e art. 46). Esses registros são apagados automaticamente após 7 dias.',
       ] },
       'Você pode pedir a exclusão dos seus dados a qualquer momento (seção 10), ressalvadas as informações que a lei nos obriga a guardar.',
     ],
@@ -95,7 +96,7 @@ const secoes: Secao[] = [
   {
     id: 'seguranca', titulo: 'Segurança',
     blocos: [
-      'O site usa conexão criptografada (HTTPS), cabeçalhos de segurança, não carrega scripts de publicidade, não tem banco de dados de clientes e trata o que você digita sempre como texto. Mesmo assim, nenhum sistema é totalmente imune a falhas. Se você suspeitar de qualquer problema, avise pelo e-mail da seção 12.',
+      'O site usa conexão criptografada (HTTPS), cabeçalhos de segurança, não carrega scripts de publicidade e trata o que você digita sempre como texto. Os dados da conta e dos pedidos ficam em banco de dados com acesso restrito (cada cliente vê só os próprios dados). Há limite de pedidos por dia e de tentativas seguidas, com bloqueio temporário de abusos. Mesmo assim, nenhum sistema é totalmente imune a falhas. Se você suspeitar de qualquer problema, avise pelo e-mail da seção 12.',
     ],
   },
   {

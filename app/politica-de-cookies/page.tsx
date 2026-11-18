@@ -17,15 +17,19 @@ const secoes: Secao[] = [
   {
     id: 'uso', titulo: 'O que o site guarda no seu navegador',
     blocos: [
-      'O site não define cookies próprios. Ele usa apenas o armazenamento local, com estes dois itens:',
+      'O site usa só cookies próprios estritamente necessários e o armazenamento local do navegador:',
       { tabela: {
         cab: ['Nome', 'Para quê', 'Conteúdo', 'Duração', 'Tipo'],
         linhas: [
-          ['ck', 'Lembrar que você fechou o aviso de cookies', 'Um marcador "visto"', 'Até você limpar os dados do site', 'Estritamente necessário'],
-          ['dogao-pedido', 'Não perder o pedido se você recarregar a página', 'Itens, observações e, se você preencher, nome, forma de recebimento e endereço', 'Até "Limpar pedido" ou limpeza dos dados do site', 'Estritamente necessário (função pedida por você)'],
+          ['sb-…-auth-token', 'Manter você conectado à sua conta', 'Sessão de login (protegida: o JavaScript da página não consegue ler)', 'Até sair da conta; sem "Manter conectado", até fechar o navegador', 'Cookie, estritamente necessário'],
+          ['manter', 'Lembrar se você marcou "Manter conectado"', '0 ou 1', 'Até sair da conta', 'Cookie, estritamente necessário'],
+          ['voltar', 'Voltar ao cardápio depois do login, sem perder o pedido', 'O texto "cardapio"', '10 minutos', 'Cookie, estritamente necessário'],
+          ['disp', 'Segurança: identificar o aparelho para limitar tentativas repetidas (pedidos, login) e bloquear abusos', 'Um código aleatório criado por nós; não identifica você nem lê nada do aparelho', '1 ano', 'Cookie, estritamente necessário (segurança)'],
+          ['ck', 'Lembrar que você fechou o aviso de cookies', 'Um marcador "visto"', 'Até você limpar os dados do site', 'Armazenamento local, estritamente necessário'],
+          ['dogao-pedido', 'Não perder o pedido se você recarregar a página', 'Itens, observações e, se você preencher, nome, forma de recebimento e endereço', 'Até "Limpar pedido" ou limpeza dos dados do site', 'Armazenamento local, estritamente necessário'],
         ],
       } },
-      'Essas informações ficam só no seu aparelho: nada disso é enviado a nós ou a terceiros. Os dados do pedido só saem do aparelho quando você toca em "Enviar pedido pelo WhatsApp".',
+      'Os cookies vão só para o nosso site, e nenhum deles é de publicidade ou rastreamento. O pedido em andamento fica só no seu aparelho até você enviá-lo.',
       'Por serem estritamente necessários ao funcionamento que você pediu, esses itens não dependem de consentimento prévio.',
     ],
   },

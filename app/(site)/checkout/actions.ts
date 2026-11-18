@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { permitir } from '@/lib/protecao';
 
 export type Estado = { erro: string } | null;
 
@@ -15,6 +16,7 @@ const ERROS: Record<string, string> = {
   extra_unavailable: 'Algum molho/adicional não está mais disponível.',
   invalid_delivery_address: 'Confira o endereço de entrega (CEP, rua, número, bairro, cidade e UF).',
   too_many_orders: 'Muitos pedidos em pouco tempo. Aguarde alguns minutos e tente de novo.',
+  daily_order_limit: 'Você atingiu o limite de 5 pedidos hoje. Tente novamente amanhã.',
   invalid_items: 'O pedido está vazio ou grande demais.',
 };
 const GENERICO = 'Não foi possível enviar o pedido agora. Tente novamente.';
@@ -36,6 +38,8 @@ export async function createOrder(_: Estado, f: FormData): Promise<Estado> {
     (await cookies()).set('voltar', 'cardapio', { maxAge: 600, path: '/', httpOnly: true, sameSite: 'lax' });
     redirect('/login');
   }
+
+  if (!(await permitir('pedido'))) return { erro: 'Muitas tentativas seguidas. Aguarde 15 minutos e tente de novo.' };
 
   const bruto = String(f.get('payload') ?? '');
   let p: Record<string, unknown>;
