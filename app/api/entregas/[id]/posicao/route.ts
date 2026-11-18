@@ -1,4 +1,5 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse, after, type NextRequest } from 'next/server';
+import { rotaEta } from '@/lib/geo';
 import { cookies } from 'next/headers';
 import { usuarioAtual } from '@/lib/supabase/server';
 
@@ -38,6 +39,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await supabase.rpc('log_denied', { p_ip: ip, p_device: (await cookies()).get('disp')?.value ?? '' });
     console.warn('[posicao] negado', { user: user.id.slice(0, 8), entrega: id.slice(0, 8) });
     return resp(403, 'not_assigned');
+  }
+  // ETA no servidor, depois de responder ao app (não atrasa o envio): no máximo a cada 45 s por entrega.
+  // Origem arredondada (~100 m), igual à posição mostrada ao cliente.
+  if (data === 'ok') {
+    after(async () => {
+      const { data: d } = await supabase.from('deliveries').select('dest_lat, dest_lng, eta_updated_at').eq('id', id).maybeSingle();
+      if (!d || (d.eta_updated_at && Date.now() - new Date(d.eta_updated_at).getTime() < 45_000)) return;
+      const r3 = (x: number) => Math.round(x * 1000) / 1000;
+      const e = await rotaEta({ lat: r3(lat), lng: r3(lng) }, { lat: d.dest_lat, lng: d.dest_lng });
+      await supabase.rpc('courier_set_eta', { p_delivery_id: id, p_eta_minutes: e.minutos, p_distance_km: e.km, p_polyline: e.polyline as string });
+    });
   }
   // descartes (stale, duplicate, too_fast, jump...) não são erro do app: responde 200 com o motivo
   return resp(200, String(data));

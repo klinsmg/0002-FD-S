@@ -3,11 +3,18 @@ import { notFound, redirect } from 'next/navigation';
 import LimparCarrinho from '@/components/LimparCarrinho';
 import { usuarioAtual } from '@/lib/supabase/server';
 import AoVivo from '@/components/AoVivo';
+import MapaRastreio from '@/components/MapaRastreio';
 import ConviteAvaliacao from '@/components/ConviteAvaliacao';
 import { avaliarNoGoogle } from '@/lib/info';
 import { PONTO, STATUS, TIPO, data, reais } from '@/lib/conta';
 
 export const metadata = { title: 'Seu pedido', robots: { index: false, follow: false } };
+const EVENTO: Record<string, string> = {
+  PEDIDO_CRIADO: 'Pedido recebido', PEDIDO_CONFIRMADO: 'Pedido confirmado', EM_PREPARO: 'Em preparo', PRONTO: 'Pronto', PRONTO_PARA_RETIRADA: 'Pronto para retirada',
+  SAIU_PARA_ENTREGA: 'Saiu para entrega', EM_ROTA: 'A caminho', CHEGANDO: 'Chegando', CHEGOU_NO_LOCAL: 'O entregador chegou',
+  ENTREGUE: 'Entregue', RETIRADO: 'Retirado', CANCELADO: 'Cancelado', FALHA_NA_ENTREGA: 'Falha na entrega',
+};
+const hora = (d: string) => new Date(d).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Só o DONO vê o pedido: sem sessão vai ao login; com sessão, a consulta filtra por user_id (e o RLS também).
@@ -26,6 +33,12 @@ export default async function Pedido({ params }: { params: Promise<{ id: string 
     .maybeSingle();
   if (!p) notFound();
 
+  const entrega = p.order_type === 'delivery' && (p.status === 'out_for_delivery' || p.status === 'delivered');
+  const [{ data: rastreio }, { data: eventos }] = await Promise.all([
+    entrega ? supabase.rpc('order_tracking', { p_order_id: p.id }) : Promise.resolve({ data: null }),
+    supabase.from('order_events').select('id, type, created_at').eq('order_id', p.id).order('created_at'),
+  ]);
+  const r = rastreio?.[0];
   const end = p.delivery_address as Record<string, string> | null;
   // andamento: Recebido → Em preparo → Pronto → (Saiu para entrega) → Entregue/Retirado
   const passos = p.order_type === 'delivery' ? ['Recebido', 'Em preparo', 'Pronto', 'Saiu para entrega', 'Entregue'] : ['Recebido', 'Em preparo', 'Pronto', 'Retirado'];
@@ -48,6 +61,15 @@ export default async function Pedido({ params }: { params: Promise<{ id: string 
           <ol className="trilha" style={{ '--n': passos.length } as React.CSSProperties} aria-label="Andamento do pedido">
             {passos.map((t, i) => <li key={t} className={i <= etapa ? 'feito' : undefined} aria-current={i === etapa ? 'step' : undefined}>{t}</li>)}
           </ol>
+        )}
+        {r && p.status === 'out_for_delivery' && (
+          <MapaRastreio pedido={p.id} inicial={{ status: r.status, lat: r.lat, lng: r.lng, destLat: r.dest_lat, destLng: r.dest_lng, eta: r.eta_minutes, km: r.distance_km, rota: r.route_polyline, atualizadoEm: r.updated_at }} />
+        )}
+        {!!eventos?.length && (
+          <details className="eventos" open={p.status === 'out_for_delivery'}>
+            <summary>Linha do tempo</summary>
+            <ol>{eventos.filter(e => EVENTO[e.type]).map(e => <li key={e.id}><time dateTime={e.created_at}>{hora(e.created_at)}</time> {EVENTO[e.type]}</li>)}</ol>
+          </details>
         )}
         {!encerrado && <p className="nota"><AoVivo topico={`pedido:${p.id}`} /> Cada mudança no pedido aparece aqui na hora, sem recarregar.</p>}
         <ul className="canais">

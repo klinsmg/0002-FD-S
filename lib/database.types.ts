@@ -947,6 +947,15 @@ export type Database = {
         }
         Returns: string
       }
+      courier_set_eta: {
+        Args: {
+          p_delivery_id: string
+          p_distance_km: number
+          p_eta_minutes: number
+          p_polyline: string
+        }
+        Returns: undefined
+      }
       create_contact: {
         Args: { p_message: string; p_name: string }
         Returns: string
@@ -995,6 +1004,20 @@ export type Database = {
           p_tipo: string
         }
         Returns: boolean
+      }
+      order_tracking: {
+        Args: { p_order_id: string }
+        Returns: {
+          dest_lat: number
+          dest_lng: number
+          distance_km: number
+          eta_minutes: number
+          lat: number
+          lng: number
+          route_polyline: string
+          status: string
+          updated_at: string
+        }[]
       }
       purge_delivery_positions: { Args: never; Returns: number }
       review_decline: { Args: { p_order_id: string }; Returns: undefined }

@@ -8,16 +8,19 @@ const supabase = (() => {
   try { const u = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''); return u.protocol === 'https:' && u.hostname.endsWith('.supabase.co') ? u.origin : ''; } catch { return ''; }
 })();
 
+// Mapa ao vivo do pedido (Maps JavaScript API): domínios da lista oficial de CSP do Google Maps Platform.
+const GMAPS = 'https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.ggpht.com https://*.googleusercontent.com';
+
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${GMAPS}`,
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  `img-src 'self' data: blob: ${GMAPS}`,
   "media-src 'self'",
-  "font-src 'self' data:",
-  `connect-src 'self' https://viacep.com.br${supabase ? ` ${supabase}` : ''}`,
+  "font-src 'self' data: https://fonts.gstatic.com",
+  `connect-src 'self' https://viacep.com.br${supabase ? ` ${supabase}` : ''} ${GMAPS} data: blob:`,
   "frame-src https://www.google.com",
-  "worker-src 'none'",
+  "worker-src blob:",
   "manifest-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
@@ -31,7 +34,8 @@ const seguranca = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), serial=(), accelerometer=(), gyroscope=(), magnetometer=(), display-capture=(), browsing-topics=(), interest-cohort=()' },
+  // geolocation=(self): o app do entregador (/entregador) usa o GPS; terceiros e iframes continuam sem acesso
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self), payment=(), usb=(), bluetooth=(), serial=(), accelerometer=(), gyroscope=(), magnetometer=(), display-capture=(), browsing-topics=(), interest-cohort=()' },
   { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
   { key: 'Origin-Agent-Cluster', value: '?1' },
   { key: 'X-Permitted-Cross-Domain-Policies', value: 'none' },
