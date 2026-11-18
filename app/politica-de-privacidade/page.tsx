@@ -100,6 +100,19 @@ const secoes: Secao[] = [
     ],
   },
   {
+    id: 'entregadores', titulo: 'Localização dos entregadores',
+    blocos: [
+      'Quem faz entregas para a loja usa o app do entregador neste site. Durante uma entrega ativa, coletamos a localização do celular (latitude, longitude, precisão, velocidade e horário) para mostrar ao cliente o andamento do pedido e para confirmar que a entrega foi feita no endereço (execução do contrato e legítimo interesse, LGPD art. 7º, V e IX).',
+      { lista: [
+        '**Quando:** só com a entrega ativa e depois de o entregador ver o aviso e ligar a localização. A coleta para ao finalizar a entrega ou sair da tela.',
+        '**O que o cliente vê:** apenas uma posição aproximada, o status e a previsão de chegada. A posição exata não é compartilhada com terceiros.',
+        '**Confirmação da entrega:** guardamos a hora, as coordenadas, a precisão do GPS e a distância até o endereço no momento em que o entregador toca em "Entregue" (auditoria).',
+        '**Retenção:** o histórico de posições é apagado 30 dias depois da entrega. Os dados da confirmação ficam com o pedido.',
+        '**Direitos:** o entregador pode pedir acesso, correção ou eliminação dos dados pelo e-mail da seção de contato.',
+      ] },
+    ],
+  },
+  {
     id: 'criancas', titulo: 'Crianças e adolescentes',
     blocos: [
       'O site não é direcionado a menores de 18 anos. Pedidos devem ser feitos por maiores de idade ou com a participação de um responsável. Se identificarmos dados de uma criança enviados sem a autorização de um responsável, vamos apagá-los.',

@@ -9,11 +9,13 @@ export const STATUS_LISTA: Status[] = ['pending', 'confirmed', 'preparing', 'rea
 // Fluxo da loja (o banco confere o mesmo na migration 012, função order_status_ok):
 //   Novo -> Em preparo -> Pronto -> entrega: Saiu para entrega | retirada: Entregue ("Retirado").
 // "Entregue" de pedido de ENTREGA não sai do painel: só pelo fluxo do entregador (bloco 11).
+// "Saiu para entrega" só pelo despacho (escolhe o entregador e geocodifica o endereço; migration 015).
 export function proximos(de: Status, tipo: string): Status[] {
   switch (de) {
     case 'pending': case 'confirmed': return ['preparing', 'cancelled'];
     case 'preparing': return ['ready', 'cancelled'];
-    case 'ready': return [tipo === 'delivery' ? 'out_for_delivery' : 'delivered', 'cancelled'];
+    // entrega: "Saiu para entrega" é o despacho escolhendo o entregador (despacharPedido), não um passo simples
+    case 'ready': return tipo === 'delivery' ? ['cancelled'] : ['delivered', 'cancelled'];
     case 'out_for_delivery': return ['cancelled'];
     default: return [];
   }

@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { PAGAMENTO, STATUS_LISTA, exigirAdmin, paraCentavos, podeIr, type Status } from '@/lib/admin';
 import { limpa } from '@/lib/conta';
+import { geocodificar, temChaveServidor } from '@/lib/geo';
 
 // Mutações do painel. Todas começam por exigirAdmin() e usam o cliente do USUÁRIO (RLS), nunca a service role.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -137,4 +138,44 @@ export async function excluirProduto(f: FormData) {
   }
   atualizar('/admin/produtos');
   redirect('/admin/produtos?ok=1');
+}
+
+// ---------- entregas ----------
+// "Saiu para entrega": geocodifica o endereço no servidor (chave de backend) e despacha para o entregador escolhido.
+export async function despacharPedido(f: FormData) {
+  const { supabase } = await exigirAdmin();
+  const id = idDe(f), entregador = idDe(f, 'entregador');
+  if (!id || !entregador) redirect('/admin/loja?erro=entregador');
+  const { data: p } = await supabase.from('orders').select('status, order_type, delivery_address').eq('id', id).maybeSingle();
+  if (!p || p.status !== 'ready' || p.order_type !== 'delivery') redirect('/admin/loja?erro=fluxo');
+  if (!temChaveServidor()) redirect('/admin/loja?erro=chave');
+  const destino = await geocodificar((p.delivery_address ?? {}) as Record<string, string>);
+  if (!destino) redirect('/admin/loja?erro=endereco');
+  const { error } = await supabase.rpc('dispatch_order', { p_order_id: id, p_courier_id: entregador, p_dest_lat: destino.lat, p_dest_lng: destino.lng });
+  if (error) redirect(`/admin/loja?erro=${error.message.includes('courier_not_found') ? 'entregador' : 'fluxo'}`);
+  atualizar('/admin', '/admin/loja', '/admin/pedidos', `/admin/pedidos/${id}`, `/pedido/${id}`, '/entregador');
+  redirect('/admin/loja');
+}
+
+// Liberar / tirar entregador pelo e-mail da conta Google
+export async function salvarEntregador(f: FormData) {
+  const { supabase } = await exigirAdmin();
+  const email = limpa(f.get('email'), 254).toLowerCase();
+  const ativo = f.get('ativo') !== '0';
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) redirect('/admin/configuracoes?erro=email#entregadores');
+  const { error } = await supabase.rpc('admin_set_courier', { p_email: email, p_active: ativo });
+  if (error) redirect(`/admin/configuracoes?erro=${error.message.includes('user_not_found') ? 'naoachou' : 'falha'}#entregadores`);
+  atualizar('/admin/configuracoes', '/admin/loja');
+  redirect(`/admin/configuracoes?ok=${ativo ? 'liberado' : 'removido'}#entregadores`);
+}
+
+// Raio de confirmação e precisão mínima do GPS
+export async function configurarEntrega(f: FormData) {
+  const { supabase } = await exigirAdmin();
+  const raio = Number(f.get('raio')), prec = Number(f.get('precisao'));
+  if (!Number.isInteger(raio) || raio < 20 || raio > 300 || !Number.isInteger(prec) || prec < 10 || prec > 100) redirect('/admin/configuracoes?erro=raio#entrega');
+  const { error } = await supabase.from('store_settings').update({ delivery_confirm_radius_m: raio, gps_max_accuracy_m: prec }).eq('id', true);
+  if (error) redirect('/admin/configuracoes?erro=falha#entrega');
+  atualizar('/admin/configuracoes');
+  redirect('/admin/configuracoes?ok=entrega#entrega');
 }

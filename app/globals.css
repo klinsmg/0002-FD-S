@@ -934,3 +934,25 @@ body:has(.cupons){background:#fff}
 .aovivo-aviso button{min-width:44px;min-height:44px;border:0;background:none;font:800 22px var(--fonte-corpo);color:inherit;cursor:pointer}
 @keyframes aovivo-entra{from{opacity:0;transform:translateY(12px)}}
 @media(prefers-reduced-motion:reduce){.aovivo-vivo::before,.aovivo-aviso{animation:none}}
+
+/* app do entregador (celular primeiro: botões grandes, leitura rápida na rua) */
+.ent{max-width:640px}
+.ent .canais a{color:var(--destaque)}
+.ent-itens{margin:14px 0;padding:12px 16px;border:1px solid var(--linha);border-radius:14px;background:var(--superficie)}
+.ent-itens summary{cursor:pointer;font-weight:700;min-height:32px;display:flex;align-items:center}
+.ent-itens ul{margin:8px 0 0;padding-left:18px;display:grid;gap:4px}
+.ent-aviso{margin-top:18px;padding:18px;border:1px solid var(--destaque);border-radius:16px;background:var(--superficie)}
+.ent-aviso ul{padding-left:18px;display:grid;gap:6px}
+.ent-gps{margin-top:18px;display:grid;gap:12px}
+.ent-gps .btn{width:100%;min-height:52px;justify-content:center}
+.ent-sinal{display:flex;align-items:center;gap:8px;margin:0;font-weight:700}
+.ent-sinal::before{content:"";flex:none;width:10px;height:10px;border-radius:50%;background:var(--texto-fraco)}
+.ent-ativo::before{background:#2fbf8a}
+.ent-negado::before,.ent-indisponivel::before{background:#e0a23a}
+.ent-entregue{font-size:20px}
+.ent-entregue:disabled{opacity:.45;cursor:not-allowed}
+.ent-confirma{display:grid;gap:10px;padding:16px;border:2px solid var(--destaque);border-radius:16px}
+.ent-confirma p{margin:0}
+.ent-msg{font-weight:700;color:var(--creme)}
+.ped-despacho{display:flex;flex-wrap:wrap;gap:8px;width:100%}
+.ped-despacho select{flex:1 1 140px;min-height:44px;padding:0 10px;border:1px solid var(--linha);border-radius:12px;background:var(--fundo);color:var(--creme);font:inherit}

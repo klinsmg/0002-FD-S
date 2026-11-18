@@ -18,6 +18,6 @@ export default function CtaTopo() {
     return () => io.disconnect();
   }, [caminho]);
 
-  if (caminho.startsWith('/cardapio')) return null;
+  if (caminho.startsWith('/cardapio') || caminho.startsWith('/entregador')) return null;
   return <Link ref={ref} className="btn btn-p topo-cta" href="/cardapio">Realizar pedido</Link>;
 }

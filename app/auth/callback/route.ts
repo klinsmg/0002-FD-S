@@ -10,11 +10,12 @@ export async function GET(request: NextRequest) {
   if (code) {
     const { error } = await (await createClient()).auth.exchangeCodeForSession(code);
     if (!error) {
-      // o checkout deixa o cookie 'voltar' (lista fixa, nada vem da URL): depois do login, volta ao cardápio com o carrinho salvo
+      // o checkout e o app do entregador deixam o cookie 'voltar' (lista fixa, nada vem da URL)
       const jar = await cookies();
-      const volta = jar.get('voltar')?.value === 'cardapio';
+      const DESTINOS: Record<string, string> = { cardapio: '/cardapio', entregador: '/entregador' };
+      const volta = DESTINOS[jar.get('voltar')?.value ?? ''] ?? '/conta';
       jar.delete('voltar');
-      return NextResponse.redirect(`${origin}${volta ? '/cardapio' : '/conta'}`);
+      return NextResponse.redirect(`${origin}${volta}`);
     }
   }
   return NextResponse.redirect(`${origin}/login?erro=1`);
