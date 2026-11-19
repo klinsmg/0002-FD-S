@@ -1,7 +1,7 @@
 import { NextResponse, after, type NextRequest } from 'next/server';
 import { rotaEta } from '@/lib/geo';
 import { aproximar } from '@/lib/regras';
-import { cookies } from 'next/headers';
+import { registrarNegado } from '@/lib/protecao';
 import { usuarioAtual } from '@/lib/supabase/server';
 
 // POST /api/entregas/{id}/posicao — o app do entregador envia o GPS aqui (com os cookies da sessão).
@@ -36,8 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   });
   if (error) { console.error('[posicao]', error.message); return resp(500, 'erro'); }
   if (data === 'not_assigned') {
-    const ip = (req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0] ?? '').trim();
-    await supabase.rpc('log_denied', { p_ip: ip, p_device: (await cookies()).get('disp')?.value ?? '' });
+    await registrarNegado(user.id);
     console.warn('[posicao] negado', { user: user.id.slice(0, 8), entrega: id.slice(0, 8) });
     return resp(403, 'not_assigned');
   }

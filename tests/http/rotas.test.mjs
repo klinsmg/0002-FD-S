@@ -72,3 +72,13 @@ test('cabeçalhos de segurança', { skip: !online }, async () => {
 test('respostas com sessão não ficam em cache compartilhado', { skip: !online }, async () => {
   for (const p of ['/api/sessao', '/api/enderecos']) assert.match((await get(p)).headers.get('cache-control') ?? '', /no-store/, p);
 });
+
+test('nenhum segredo nos arquivos JS entregues ao navegador', { skip: !online }, async () => {
+  const html = await (await get('/cardapio')).text();
+  const scripts = [...new Set([...html.matchAll(/src="(\/_next\/static\/[^"]+\.js)"/g)].map(m => m[1]))];
+  assert.ok(scripts.length > 3, 'achou os scripts da página');
+  for (const s of scripts) {
+    const js = await (await get(s)).text();
+    assert.doesNotMatch(js, /sb_secret_|service_role|SUPABASE_SERVICE_ROLE_KEY|GOOGLE_MAPS_SERVER_KEY/, s);
+  }
+});

@@ -879,7 +879,12 @@ export type Database = {
     }
     Functions: {
       access_check: {
-        Args: { p_action: string; p_device: string; p_ip: string }
+        Args: {
+          p_action: string
+          p_device: string
+          p_ip: string
+          p_user: string
+        }
         Returns: boolean
       }
       admin_list_couriers: {
@@ -1002,7 +1007,7 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_courier: { Args: never; Returns: boolean }
       log_denied: {
-        Args: { p_device: string; p_ip: string }
+        Args: { p_device: string; p_ip: string; p_user: string }
         Returns: undefined
       }
       order_status_ok: {

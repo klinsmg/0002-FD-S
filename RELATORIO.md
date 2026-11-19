@@ -157,7 +157,7 @@ classes existentes (`btn`, `nota`, `canais`, `conta-tit`), usam `<details>`/`<fi
 /`aria-live` nas mensagens, e todas as animações novas respeitam `prefers-reduced-motion`.
 
 ### Regressão
-Unitários 8/8 · banco 276/276 · HTTP 20/20.
+Unitários 8/8 · banco 276/276 · HTTP 19/19.
 
 ### Não feito nesta fase (registrado)
 - "Ganhos" do entregador mostra a soma das **taxas de entrega** dos pedidos dele: o sistema não tem cadastro de quanto
@@ -225,3 +225,56 @@ senha), busca por sinks de XSS, endpoints de debug e logs.
 - **Upload:** não existe upload de arquivo. **Webhooks de pagamento:** não existem (sem pagamento online).
 - **Endpoints de debug:** nenhum. **CORS:** rotas do Next sem CORS aberto.
 - **CSV do relatório:** proteção contra injeção de fórmula.
+
+---
+
+## Fase 5 — Correção e hardening
+
+### Correções (por severidade)
+| # | Sev. | Correção | Teste de regressão | Em produção? |
+|---|---|---|---|---|
+| V1 | Alta | `is_admin()` exige `aal2` (2FA concluído) no JWT. Uma sessão só com senha (ou Google) não tem mais nenhum poder de admin na API do banco, no Realtime nem nas funções | `tests/db` seção 25 (5 checagens: lê, altera, libera entregador, auditoria; e admin aal2 continua funcionando) | **Sim** (migração 019 aplicada; conferido nos metadados) |
+| V2 | Média | `access_check` só para `service_role`; o servidor (`lib/protecao.ts` + `lib/supabase/servico.ts`, com `server-only`) informa o IP real e o usuário verificado | seção 25 (anônimo e cliente recusados; servidor registra o usuário) | **Sim** (banco). Código: no próximo deploy |
+| V3 | Baixa | `pg_advisory_xact_lock` por cliente no limite de 5 pedidos/dia | seção 25 | Sim |
+| V4 | Baixa | `log_denied` só para `service_role` | seção 25 | Sim |
+| V5 | Moderada | Next.js 16.4.4 → **16.4.6** (`npm audit`: 0 vulnerabilidades) | `npm audit` | No próximo deploy |
+| V6 | Baixa | IP mascarado nos logs (`ipLog`) | — | No próximo deploy |
+| extra | Baixa | Envio do e-mail de recuperação de senha do admin passa pelo mesmo limite do login (antes dava para disparar e-mails em série) | — | No próximo deploy |
+
+Reversão: `supabase/rollback/019_down.sql` (testada no PGlite: desfaz, reaplica e V1 continua fechado — seção 26).
+Backup das funções antes da mudança: `supabase/backups/20261119-fase5-funcoes-antes-019.json` (fora do git).
+
+### Defesa em profundidade (situação final)
+- **Autorização em toda rota:** todas as Server Actions validam a entrada e conferem a sessão/papel (admin: `exigirAdmin`
+  com aal2 + senha; entregador: `entregadorAtual`; cliente: `usuarioAtual`); e o banco confere de novo (RLS + funções
+  `security definer` com `search_path` vazio). Revisado arquivo por arquivo.
+- **Rate limiting:** pedido, login do painel, 2FA, recuperação de senha (usuário + IP + aparelho), 5 pedidos/dia,
+  1 posição de GPS a cada 3 s, limites do Supabase Auth.
+- **Cabeçalhos:** CSP, HSTS (2 anos, preload), X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy
+  (só geolocalização do próprio site), COOP, sem X-Powered-By — com teste automatizado.
+- **Senhas:** hash do Supabase Auth (bcrypt); senha do admin com mínimo de 12 caracteres; 2FA TOTP obrigatório e agora
+  também no banco.
+- **Logs de auditoria:** linha do tempo dos pedidos, confirmação de entrega com posição/precisão/distância, tentativas
+  barradas, acessos negados ao GPS (tela `/admin/auditoria`).
+- **Erros sem detalhes internos:** respostas com códigos curtos/mensagens genéricas; detalhes só no log do servidor.
+- **LGPD:** aviso e consentimento do entregador antes do GPS; cliente vê só posição aproximada; retenção (GPS 30 dias com
+  botão de limpeza; tentativas 7 dias); IP mascarado na tela e nos logs; política de privacidade e de cookies atualizadas.
+- **Segredos:** chave secreta só no servidor (teste HTTP garante que nenhum JS servido contém segredo).
+
+### Pendentes (média/baixa) com justificativa
+| # | Sev. | Por que ficou | O que fazer |
+|---|---|---|---|
+| V8 | Média | CSP com `'unsafe-inline'`/`'unsafe-eval'`: exigido pelo Alpine (build padrão) e pela hidratação do Next. Trocar exige reescrever o carrinho | Migrar o carrinho para `@alpinejs/csp` + nonce por requisição |
+| V7 | Baixa | O token de acesso (1 h) vai ao JS só para abrir o WebSocket autenticado; não há alternativa no Realtime do Supabase sem expor um JWT | Mitigado por V1 e pela CSP; manter |
+| V9 | Baixa | GPS falsificado pelo próprio entregador é limite do modelo (o app roda no aparelho dele) | Futuro: prova de entrega (foto ou código dito pelo cliente) |
+| V10 | Baixa | Configuração do painel do Supabase (não alterável com segurança pela CLI: `config push` sobrescreveria a configuração do Auth com a de desenvolvimento) | Desligar **Realtime › Settings › Allow public access** no painel |
+| V11 | Info | Chave da Embed API é pública por desenho | Manter a restrição por domínio |
+
+**Nenhuma vulnerabilidade crítica ou alta aberta.**
+
+### Ação necessária no deploy
+A Vercel precisa da variável **`SUPABASE_SERVICE_ROLE_KEY`** (chave secreta do Supabase). Sem ela o site funciona,
+mas os limites de tentativa ficam desligados (o log avisa `[seguranca] SUPABASE_SERVICE_ROLE_KEY ausente`).
+
+### Regressão
+Unitários 8/8 · banco **291/291** · HTTP **20/20** · `npm audit` 0.

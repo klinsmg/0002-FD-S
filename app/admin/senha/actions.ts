@@ -2,12 +2,15 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { permitir } from '@/lib/protecao';
 
 const txt = (v: unknown) => (typeof v === 'string' ? v : '');
 
 export async function enviarLinkSenha(email: string): Promise<{ erro?: string }> {
   const e = txt(email).trim().slice(0, 254);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return { erro: 'Informe um e-mail válido.' };
+  // mesmo limite do login do painel (por IP e aparelho): ninguém dispara e-mails em série para o admin
+  if (!(await permitir('login_admin'))) return { erro: 'Muitas tentativas seguidas. Por segurança, espere 15 minutos e tente de novo.' };
   const origem = (await headers()).get('origin');
   const { error } = await (await createClient()).auth.resetPasswordForEmail(e, { redirectTo: `${origem}/admin/senha` });
   // limite de envio / falha do serviço de e-mail não dependem da conta existir, então podem ser mostrados; o resto responde igual

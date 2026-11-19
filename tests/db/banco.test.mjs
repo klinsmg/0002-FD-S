@@ -10,13 +10,14 @@ const check = (n, c, x = '') => { c ? (ok++, console.log('  ok ' + n)) : (f++, c
 const erro = async fn => { try { await fn(); return null; } catch (e) { return e.message; } };
 const q = async (s, p) => (await db.query(s, p)).rows;
 const su = async () => { await db.exec('reset role'); await db.query("select set_config('request.jwt.claim.sub','',false)"); await db.query("select set_config('request.jwt.claims','',false)"); };
-const como = async (r, sub = '', anon = false) => { await db.exec('reset role'); await db.exec(`set role ${r}`); await db.query("select set_config('request.jwt.claim.sub',$1,false)", [sub]); await db.query("select set_config('request.jwt.claims',$1,false)", [JSON.stringify({ role: r, ...(anon ? { is_anonymous: true } : {}) })]); };
+// sessão: o admin entra com senha + 2FA (aal2), como o painel exige; comoAal1 simula senha sem o código
+const como = async (r, sub = '', anon = false, aal = null) => { await db.exec('reset role'); await db.exec(`set role ${r}`); await db.query("select set_config('request.jwt.claim.sub',$1,false)", [sub]); await db.query("select set_config('request.jwt.claims',$1,false)", [JSON.stringify({ role: r, sub, aal: aal ?? (sub && sub === globalThis.__ADM ? 'aal2' : 'aal1'), ...(anon ? { is_anonymous: true } : {}) })]); };
 const n = async (s, p) => Number((await q(s, p))[0].n);
 const afet = async (s, p) => Number((await q(`with x as (${s} returning 1) select count(*) n from x`, p).catch(() => [{ n: 0 }]))[0].n);
 const RLO = String.fromCharCode(0x202e);
 const ped = (itens, o = {}) => q(`select * from public.create_order($1,$2,$3::jsonb,$4,$5,$6,$7::jsonb)`, [o.nome ?? 'Maria', o.tipo ?? 'pickup', JSON.stringify(itens), o.fone ?? null, o.pag ?? null, o.notes ?? null, o.addr ? JSON.stringify(o.addr) : null]);
 
-await db.exec(`create role anon nologin; create role authenticated nologin; grant usage on schema public to anon, authenticated;
+await db.exec(`create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls; grant usage on schema public to anon, authenticated, service_role;
  create schema auth; create table auth.users (id uuid primary key, email text, phone text, raw_user_meta_data jsonb, is_anonymous boolean default false);
  create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
  create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
@@ -73,7 +74,7 @@ check('NÃO executa create_order', !!(await erro(() => ped([{ product_id: xb.id,
 check('NÃO executa create_contact', !!(await erro(() => q(`select public.create_contact('x','y')`))));
 
 console.log('4) Pedido completo pelo create_order (cliente logado)');
-const ADM = '00000000-0000-0000-0000-00000000000a', C1 = '00000000-0000-0000-0000-00000000000b', C2 = '00000000-0000-0000-0000-00000000000c';
+const ADM = globalThis.__ADM = '00000000-0000-0000-0000-00000000000a', C1 = '00000000-0000-0000-0000-00000000000b', C2 = '00000000-0000-0000-0000-00000000000c';
 await su();
 await db.query(`insert into auth.users (id, raw_user_meta_data) values ($1,'{"full_name":"Admin"}'),($2,'{"full_name":"Cliente Um"}'),($3,'{"name":"Cliente Dois"}')`, [ADM, C1, C2]);
 await db.query(`update public.profiles set role='admin' where id=$1`, [ADM]);
@@ -269,7 +270,7 @@ check(`views (${views.length}) com security_invoker = true`, views.length === 3 
 const fn = await q(`select p.proname, p.prosecdef d, coalesce(array_to_string(p.proconfig, ','), '') cfg, has_function_privilege('anon', p.oid, 'EXECUTE') a, has_function_privilege('authenticated', p.oid, 'EXECUTE') au from pg_proc p join pg_namespace s on s.oid=p.pronamespace where s.nspname='public'`);
 check('toda função SECURITY DEFINER tem search_path fixo', fn.filter(f => f.d).every(f => /search_path/.test(f.cfg)), fn.filter(f => f.d && !/search_path/.test(f.cfg)).map(f => f.proname).join());
 const defAnon = fn.filter(f => f.d && f.a).map(f => f.proname);
-check('funções SECURITY DEFINER que o anônimo executa: só is_admin e access_check (limite do login)', defAnon.join() === 'access_check,is_admin' || defAnon.join() === 'is_admin,access_check', defAnon.join());
+check('funções SECURITY DEFINER que o anônimo executa: só is_admin', defAnon.join() === 'is_admin', defAnon.join());
 check('create_order e create_contact: só authenticated (não anon)', fn.filter(f => ['create_order', 'create_contact'].includes(f.proname)).every(f => f.au && !f.a));
 check('admin_set_order_amounts: só authenticated; anonymize_customer_data: ninguém', fn.find(f => f.proname === 'admin_set_order_amounts').au && !fn.find(f => f.proname === 'admin_set_order_amounts').a && !fn.find(f => f.proname === 'anonymize_customer_data').au);
 
@@ -402,13 +403,13 @@ console.log('18) Tentativas e bloqueio (014)');
   const Z = P(50); await mk(Z, { full_name: 'Zeca' });
   const D1 = '11111111-1111-4111-8111-111111111111', D2 = '22222222-2222-4222-8222-222222222222';
   await como('authenticated', Z);
-  const ac = (acao, ip, d) => q('select public.access_check($1,$2,$3) ok', [acao, ip, d]).then(r => r[0].ok);
-  let oks = 0; for (let i = 0; i < 6; i++) oks += (await ac('pedido', '10.0.0.1', D1)) ? 1 : 0;
+  // como o servidor chama (service_role), informando o usuário verificado (u)
+  const ac = async (acao, ip, d, u = null) => { await como('service_role'); return (await q('select public.access_check($1,$2,$3,$4) ok', [acao, ip, d, u]))[0].ok; };
+  let oks = 0; for (let i = 0; i < 6; i++) oks += (await ac('pedido', '10.0.0.1', D1, Z)) ? 1 : 0;
   check('6 tentativas de pedido em 10 min passam', oks === 6);
-  check('a 7ª do mesmo usuário é bloqueada', (await ac('pedido', '10.0.0.9', D2)) === false);
-  check('segue bloqueado mesmo trocando IP e dispositivo (usuário)', (await ac('pedido', '10.0.0.8', null)) === false);
-  check('bloqueio é por ação (login não afetado)', (await ac('codigo_2fa', '10.0.0.1', D1)) === true);
-  await como('anon');
+  check('a 7ª do mesmo usuário é bloqueada', (await ac('pedido', '10.0.0.9', D2, Z)) === false);
+  check('segue bloqueado mesmo trocando IP e dispositivo (usuário)', (await ac('pedido', '10.0.0.8', null, Z)) === false);
+  check('bloqueio é por ação (login não afetado)', (await ac('codigo_2fa', '10.0.0.1', D1, Z)) === true);
   check('dispositivo bloqueado também barra outra conta/anônimo', (await ac('pedido', '10.0.0.7', D1)) === false);
   let ipok = 0; for (let i = 0; i < 15; i++) ipok += (await ac('login_admin', '200.1.1.1', null)) ? 1 : 0;
   check('login: IP compartilhado aguenta 15 tentativas', ipok === 15);
@@ -416,6 +417,7 @@ console.log('18) Tentativas e bloqueio (014)');
   check('outro IP segue livre', (await ac('login_admin', '200.1.1.2', null)) === true);
   check('ação inválida recusada', !!(await erro(() => ac('xyz', null, null))));
   check('dispositivo fora do formato é ignorado (não quebra)', (await ac('login_admin', '200.1.1.3', 'lixo<script>')) === true);
+  await como('anon');
   check('anônimo NÃO lê os registros', !!(await erro(() => q('select * from public.access_attempts'))));
   await como('authenticated', Z);
   check('cliente NÃO lê os registros', (await n('select count(*) n from public.access_attempts')) === 0);
@@ -425,7 +427,7 @@ console.log('18) Tentativas e bloqueio (014)');
   await su();
   await q(`update public.access_attempts set created_at = now() - interval '16 minutes'`);
   await como('authenticated', Z);
-  check('depois de 15 min o bloqueio cai', (await ac('pedido', '10.0.0.1', D1)) === true);
+  check('depois de 15 min o bloqueio cai', (await ac('pedido', '10.0.0.1', D1, Z)) === true);
   await su();
 }
 console.log('19) Entregas e confirmação (015)');
@@ -617,7 +619,7 @@ console.log('23) Funções auxiliares diretas');
   const Q = P(90); await db.query(`insert into auth.users (id, email) values ($1,'aux@x.com')`, [Q]);
   await como('authenticated', Q);
   check('is_courier: falso para quem não foi liberado', (await q('select public.is_courier() v'))[0].v === false);
-  await q(`select public.log_denied('10.9.9.9', 'nao-uuid')`);
+  await como('service_role'); await q(`select public.log_denied('10.9.9.9', 'nao-uuid', $1)`, [Q]);
   await su();
   const l = (await q(`select action, ip, device, blocked, user_id from public.access_attempts where ip='10.9.9.9'`))[0];
   check('log_denied registra acesso negado (dispositivo inválido vira nulo)', l && l.action === 'rastreio_negado' && l.blocked && l.device === null && l.user_id === Q, JSON.stringify(l));
@@ -667,6 +669,44 @@ console.log('24) Entregador devolve/recusa a entrega (018)');
   check('pedido de volta em Pronto', (await q('select status from public.orders where id=$1', [pid]))[0].status === 'ready');
   await como('authenticated', ADM);
   check('loja pode cancelar depois da devolução', !(await erro(() => q(`update public.orders set status='cancelled' where id=$1`, [pid]))));
+  await su();
+}
+console.log('25) Regressão de segurança (Fase 4/5)');
+{
+  await su();
+  // V1: admin sem 2FA concluído (aal1: só senha, ou sessão do Google) NÃO pode ter poder de admin direto na API do banco
+  await como('authenticated', ADM, false, 'aal1');
+  check('V1 admin em aal1 NÃO lê pedidos de todos', (await n('select count(*) n from public.orders')) === 0);
+  check('V1 admin em aal1 NÃO muda status', (await afet(`update public.orders set notes='x'`)) === 0);
+  check('V1 admin em aal1 NÃO libera entregador', !!(await erro(() => q(`select public.admin_set_courier('aux@x.com', true)`))));
+  check('V1 admin em aal1 NÃO lê tentativas/auditoria', (await n('select count(*) n from public.access_attempts')) === 0 && (await n('select count(*) n from public.order_events')) === 0);
+  await como('authenticated', ADM);
+  check('V1 admin em aal2 continua com acesso', (await n('select count(*) n from public.orders')) > 10);
+  // V2: o limite de tentativas não pode aceitar IP inventado por quem chama a API (travaria o login de outra pessoa)
+  await como('anon');
+  check('V2 anônimo NÃO chama access_check direto', !!(await erro(() => q(`select public.access_check('login_admin','200.200.200.200',null,null)`))));
+  await como('authenticated', P(1));
+  check('V2 cliente NÃO chama access_check direto', !!(await erro(() => q(`select public.access_check('pedido','1.2.3.4',null,null)`))));
+  await como('service_role');
+  check('V2 servidor (service_role) chama com o usuário verificado', (await q(`select public.access_check('pedido','9.9.9.9',null,$1) ok`, [P(1)]))[0].ok === true);
+  await su();
+  check('V2 o registro guarda o usuário informado pelo servidor', (await n(`select count(*) n from public.access_attempts where ip='9.9.9.9' and user_id=$1`, [P(1)])) === 1);
+  // V3: limite diário sob concorrência — o gatilho serializa os pedidos do mesmo cliente
+  const def = (await q(`select pg_get_functiondef('public.orders_daily_limit()'::regprocedure) d`))[0].d;
+  check('V3 limite diário com trava por cliente (pg_advisory_xact_lock)', /pg_advisory_xact_lock/.test(def));
+  // V4: registro de acesso negado só pelo servidor (senão qualquer conta enche o log)
+  await como('authenticated', P(1));
+  check('V4 cliente NÃO grava log_denied direto', !!(await erro(() => q(`select public.log_denied('1.1.1.1','',null)`))));
+  await su();
+}
+console.log('26) Reversão da 019 e reaplicação');
+{
+  await su();
+  const D19 = fileURLToPath(new URL('../../supabase/rollback/019_down.sql', import.meta.url));
+  check('rollback 019 aplica', !(await erro(() => db.exec(readFileSync(D19, 'utf8')))));
+  check('reaplicar 019', !(await erro(() => db.exec(readFileSync(DIR + files.find(x => x.startsWith('019')), 'utf8')))));
+  await como('authenticated', ADM, false, 'aal1');
+  check('depois de reaplicar, V1 continua fechado', (await n('select count(*) n from public.orders')) === 0);
   await su();
 }
 console.log(`\nResultado: ${ok} ok, ${f} falhas`); process.exit(f ? 1 : 0);
