@@ -968,3 +968,8 @@ body:has(.cupons){background:#fff}
 .eventos summary{cursor:pointer;font-weight:700;min-height:40px;display:flex;align-items:center}
 .eventos ol{list-style:none;margin:6px 0 0;padding:0 0 0 14px;border-left:2px solid var(--linha);display:grid;gap:8px}
 .eventos time{display:inline-block;min-width:48px;color:var(--texto-fraco);font-variant-numeric:tabular-nums}
+
+/* entrada suave ao rolar ([data-reveal]); só ativa com JS (html.rv-on), respeita movimento reduzido */
+html.rv-on [data-reveal]:not(.rv-vis){opacity:0;transform:translateY(30px)}
+html.rv-on [data-reveal]{transition:opacity .6s cubic-bezier(.2,.7,.2,1),transform .6s cubic-bezier(.2,.7,.2,1)}
+@media(prefers-reduced-motion:reduce){html.rv-on [data-reveal]:not(.rv-vis){opacity:1;transform:none}html.rv-on [data-reveal]{transition:none}}

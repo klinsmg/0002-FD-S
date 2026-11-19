@@ -2,39 +2,40 @@
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 
-// Carrega Alpine e GSAP sob demanda (fora do bundle inicial) e anima elementos [data-reveal].
+// Carrega o Alpine sob demanda (fora do bundle inicial) e faz a entrada suave dos elementos [data-reveal].
 export default function Runtime() {
   const path = usePathname();
+  // Alpine (carrinho) sob demanda, uma vez só
   useEffect(() => {
-    let dead = false;
-    let ctx: { revert(): void } | undefined;
-    let ro: ResizeObserver | undefined;
+    const w = window as unknown as { Alpine?: object };
+    if (w.Alpine) return;
     (async () => {
-      const w = window as unknown as { Alpine?: object };
-      if (!w.Alpine) {
-        const [{ default: Alpine }, { carrinho }] = await Promise.all([import('alpinejs'), import('@/lib/carrinho')]);
-        Alpine.data('carrinho', carrinho);
-        w.Alpine = Alpine;
-        Alpine.start();
-      }
-      const [{ gsap }, { ScrollTrigger }] = await Promise.all([import('gsap'), import('gsap/ScrollTrigger')]);
-      if (dead) return;
-      gsap.registerPlugin(ScrollTrigger);
-      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      ctx = gsap.context(() => {
-        const els = gsap.utils.toArray<HTMLElement>('[data-reveal]');
-        gsap.set(els, { opacity: 0, y: 30 });
-        ScrollTrigger.batch(els, {
-          start: 'top 92%', once: true,
-          onEnter: b => gsap.to(b, { opacity: 1, y: 0, duration: 0.6, stagger: 0.06 }),
-        });
-      });
-      // Alpine mostra/esconde blocos (filtro, FAQ): recalcula as posições do ScrollTrigger quando a altura muda.
-      let raf = 0;
-      ro = new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => ScrollTrigger.refresh()); });
-      ro.observe(document.body);
+      const [{ default: Alpine }, { carrinho }] = await Promise.all([import('alpinejs'), import('@/lib/carrinho')]);
+      if (w.Alpine) return;
+      Alpine.data('carrinho', carrinho);
+      w.Alpine = Alpine;
+      Alpine.start();
     })();
-    return () => { dead = true; ro?.disconnect(); ctx?.revert(); };
+  }, []);
+  // Entrada suave dos [data-reveal] ao rolar: IntersectionObserver + transição CSS (globals.css).
+  // Antes era GSAP ScrollTrigger: com 238 itens no cardápio, criar os gatilhos travava o celular por ~4 s.
+  // O CSS só esconde os itens depois que html.rv-on existe, então sem JS nada some.
+  useEffect(() => {
+    const els = [...document.querySelectorAll<HTMLElement>('[data-reveal]:not(.rv-vis)')];
+    if (!els.length || !('IntersectionObserver' in window)) return;
+    document.documentElement.classList.add('rv-on');
+    const io = new IntersectionObserver(entradas => {
+      let i = 0;
+      for (const e of entradas) {
+        if (!e.isIntersecting) continue;
+        const el = e.target as HTMLElement;
+        el.style.transitionDelay = `${Math.min(i++, 8) * 60}ms`; // escada curta para o lote que entra junto
+        el.classList.add('rv-vis');
+        io.unobserve(el);
+      }
+    }, { rootMargin: '0px 0px -8% 0px' });
+    els.forEach(el => io.observe(el));
+    return () => io.disconnect();
   }, [path]);
   // bloqueia clique direito e arrastar de imagens (campos de formulário continuam normais)
   useEffect(() => {

@@ -123,7 +123,7 @@ export default function Cardapio() {
         <nav className="lateral" aria-label="Filtrar categorias">
           <label className="busca">
             <span className="sr-only">Buscar no cardápio</span>
-            <input type="search" placeholder="Buscar no cardápio" {...A({ 'x-model': 'q', 'x-on:input': "cat='all'; sub='all'" })} />
+            <input type="search" placeholder="Buscar no cardápio" {...A({ 'x-model.debounce.150ms': 'q', 'x-on:input': "cat='all'; sub='all'" })} />
           </label>
           <button type="button" {...A({ 'x-on:click': `cat='all'; sub='all'; ${sobe}`, 'x-bind:class': "cat==='all'?'on':''" })}>Ver todas</button>
           {pais.map(p => (

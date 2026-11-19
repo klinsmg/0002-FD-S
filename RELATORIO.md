@@ -67,3 +67,49 @@ GPS do entregador → confirmação no endereço → pedido Entregue → faturam
 - Testes em `node:test` (nativo do Node 24, roda TypeScript sem build) em vez de adicionar Jest/Vitest.
 - E2E de navegador com login não foi automatizado: exigiria criar contas e sessões no Supabase de produção (não há
   ambiente de dev). Os fluxos foram cobertos no nível do banco (onde estão todas as regras) e das rotas HTTP.
+
+---
+
+## Fase 2 — Desempenho web
+
+### Como foi medido
+`tests/perf/vitais.pw.js` (Playwright, servidor local `next start`): celular 390×844, **CPU 4× mais lenta**, rede 4G
+(9 Mbps / 60 ms), cache desligado, 3 cargas frias por página (mediana). INP medido com um toque logo após a carga.
+Bundle: soma dos chunks de `.next/static/chunks` (gzip). Banco: `supabase inspect db index-stats` (somente leitura).
+
+### Baseline → depois
+| Página | LCP (ms) | FCP (ms) | INP (ms) | CLS | TTFB (ms) | JS (KB transf.) | Total (KB) |
+|---|---|---|---|---|---|---|---|
+| `/` | 1680 → 1664 | 980 → 1048 | 24 → 24 | 0 | 62 | 219 → **174** | 483 → **438** |
+| `/cardapio` | 2220 → **1904** | 1656 → **1372** | **5600 → 24** | 0 | 64 → 62 | 219 → **174** | 403 → **359** |
+| `/contato` | 1376 → 1340 | 876 → 788 | 48 → 48 | 0 | 62 | 219 → **174** | 357 → **313** |
+| `/entregador` | 1124 → 1076 | 544 → 552 | 40 → 32 | 0 | 62 | 219 → **175** | 355 → **311** |
+| `/admin/login` | 1116 → 1088 | 592 → 572 | 40 → 48 | 0 | 62 | 220 → **175** | 358 → **313** |
+| `/politica-de-privacidade` | 1340 → 1344 | 840 → 788 | 24 → 24 | 0 | 62 | 219 → **174** | 376 → **331** |
+
+Bundle total do site: 31 chunks / 883 KB (290 KB gzip) → **29 chunks / 772 KB (246 KB gzip)**, −15%.
+
+### O que foi otimizado
+1. **Travamento de 4 s no cardápio (INP 5,6 s → 24 ms).** Uma tarefa longa de 4.152 ms no GSAP ScrollTrigger: os 238
+   itens com animação de entrada ganhavam um gatilho cada, que media o layout de todos de uma vez. Além disso, um
+   `ResizeObserver` recalculava tudo a cada filtro. Troquei pela solução nativa: `IntersectionObserver` que só adiciona
+   uma classe e transição CSS (respeita `prefers-reduced-motion`; sem JS nada fica escondido). **A biblioteca GSAP
+   saiu do projeto** (−26 KB gzip em todas as páginas).
+2. **Busca do cardápio com debounce de 150 ms** (`x-model.debounce`, nativo do Alpine): não reavalia os 238 itens a cada tecla.
+3. **Code splitting já correto:** o cliente do Realtime (WebSocket) só carrega nas páginas de pedido e no painel
+   (verificado: `realtime=false` em todas as páginas públicas); Alpine e carrinho continuam carregados sob demanda.
+4. **Banco:** nenhuma varredura sequencial em produção (todas as consultas usam índice); tabelas pequenas. Listas com
+   paginação (pedidos do cliente: 15/página; pedidos do admin: paginados; quadro: 150 abertos + 40 encerrados do dia).
+   Índices "sem uso" são de chaves estrangeiras (usados em exclusões/joins) e foram mantidos.
+
+### Já estava bom (sem mudança)
+TTFB ~62 ms local; CLS 0 em todas as páginas; imagens via `next/image` (AVIF/WebP, tamanhos fixos, lazy);
+fontes via `next/font`; cache de CDN em mídias; compressão gzip/brotli pelo Next/Vercel.
+
+### Limites conhecidos (registrados, não alterados)
+- O painel (`/admin`) agrega os KPIs no servidor lendo até 5.000 linhas por período. Com o volume atual (9 pedidos)
+  é instantâneo; acima de ~50 mil pedidos/mês vale trocar por uma view agregada no banco.
+- Medição local não inclui a CDN da Vercel; em produção o TTFB das páginas estáticas tende a ser menor.
+
+### Regressão
+Fase 1 rodada de novo: unitários 7/7, banco 262/262, HTTP 19/19.
