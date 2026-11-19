@@ -278,3 +278,50 @@ mas os limites de tentativa ficam desligados (o log avisa `[seguranca] SUPABASE_
 
 ### Regressão
 Unitários 8/8 · banco **291/291** · HTTP **20/20** · `npm audit` 0.
+
+---
+
+## Fase 6 — Inventário final
+
+Gerado em **`INVENTARIO.md`**:
+- Funções por perfil: Público (7), Cliente (9), Loja/Admin (22), Entregador (8), Sistema (36 funções/gatilhos do banco).
+- 38 páginas/rotas com perfil de acesso e finalidade.
+- 10 endpoints HTTP + 31 Server Actions + canais do Realtime + API REST do Supabase, com a autenticação exigida.
+- README atualizado (antes descrevia o site antigo, sem banco nem login).
+
+---
+
+## Decisões tomadas sozinho (para revisão)
+1. **Migrações aplicadas no banco de produção** (017, 018, 019), todas aditivas/compatíveis com o código no ar, com
+   backup antes e script de reversão testado. A 019 fecha a vulnerabilidade alta (V1) imediatamente.
+2. **Nada foi enviado ao GitHub nem publicado** (branch local `melhorias-seguranca-desempenho`, 6 commits).
+3. **Destino aproximado → raio mínimo de 300 m** para confirmar a entrega (antes travava). Valor escolhido por
+   segurança operacional; ajustável na migração.
+4. **Limite de tentativas sem a chave secreta configurada deixa passar** (fail-open) para não derrubar pedidos/login;
+   o limite diário do banco continua valendo. Configure `SUPABASE_SERVICE_ROLE_KEY` na Vercel.
+5. **GSAP removido** do projeto (animação de entrada agora é CSS nativo; visual equivalente, sem travar o celular).
+6. **Menu do admin reordenado** (Loja primeiro). **"Realizar pedido" escondido** em login, painel e entregador
+   (mantido na área do cliente, onde ajuda a pedir de novo).
+7. **"Ganhos" do entregador = soma das taxas de entrega** (não há cadastro de quanto cada entregador recebe).
+8. **Recusa só antes de sair**; depois de sair, a devolução exige motivo (cliente ausente, endereço, outro).
+9. **Horários passaram a vir do banco**, com `lib/info.ts` como reserva.
+10. **Next 16.4.4 → 16.4.6** (patch de segurança).
+11. Não alterei a configuração do Realtime/Auth no painel do Supabase (V10): `config push` sobrescreveria a configuração
+    de produção com a de desenvolvimento.
+
+## Pendências que dependem de você
+- **Deploy** (merge da branch na `main`): o banco de produção já está à frente do código no ar desde as migrações
+  012–016; até o deploy, a loja em produção não consegue despachar nem finalizar entregas.
+- Variáveis na Vercel: `SUPABASE_SERVICE_ROLE_KEY`, `GOOGLE_MAPS_SERVER_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY`
+  (passo a passo no `.env.example`).
+- Painel do Supabase: desligar **Realtime › Allow public access** (V10).
+- Teste manual dos fluxos logados (painel, entregador no celular, mapa do cliente): não havia conta de teste.
+
+## Números finais
+| | Início | Fim |
+|---|---|---|
+| Testes automatizados | 244 checagens de banco fora do repo | **291 banco + 8 unitários (9 testes) + 20 HTTP**, no repo (`npm test`, `npm run test:http`) |
+| Vulnerabilidades | 1 alta, 2 médias, 4 baixas, 1 moderada (npm) não identificadas | **0 críticas, 0 altas abertas**; 1 média e 3 baixas pendentes com justificativa |
+| `npm audit` | 1 moderada | **0** |
+| INP do cardápio (celular) | 5.600 ms | **24 ms** |
+| JS por página | 219 KB | **174 KB** |

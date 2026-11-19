@@ -7,7 +7,7 @@ Base: template `foodvitrinetemplete`.
 `npm install` · `npm run dev` · `npm run build` · `npm start` (pare o servidor antes de buildar)
 
 ## Onde editar
-- `lib/info.ts`: telefone, WhatsApp, endereço, horários, Instagram.
+- `lib/info.ts`: telefone, WhatsApp, endereço, Instagram (horários: Admin › Configurações › Horários; o arquivo só serve de reserva).
 - `lib/menu.ts`: categorias do cardápio (páginas em imagem em `public/menu`).
 - `app/tema.css`: cores e fontes (vindas da logo).
 - `node scripts/assets.mjs`: regera WebP/logo/vídeos a partir da pasta do cliente.
@@ -16,12 +16,17 @@ Base: template `foodvitrinetemplete`.
 Importar o repositório na Vercel (framework Next.js detectado, sem configuração).
 Domínio: `mdogao.com.br`, definido em `site` (`lib/info.ts`). Ele alimenta `metadataBase`, sitemap, robots, llms.txt e ai.txt.
 
-## Carrinho (cardápio)
-`lib/carrinho.ts` (Alpine.data). O cliente adiciona itens, vê o total de referência e envia o pedido formatado ao WhatsApp da loja (`lib/info.ts`). Não há pagamento no site. O pedido fica só no `localStorage` do cliente (chave `dogao-pedido`).
-Itens com `info: true` em `lib/menu.ts` são só informativos (regras do rodízio etc.); itens sem preço entram como "valor a confirmar".
+## Como o sistema funciona
+Next.js (Vercel) + Supabase (Postgres com RLS, Auth com Google e e-mail/senha+2FA, Realtime). Perfis: cliente,
+loja/admin e entregador. Lista completa de funções, páginas e endpoints: **`INVENTARIO.md`**.
+Relatório de testes, desempenho e segurança: **`RELATORIO.md`**.
+
+## Testes
+`npm test` (unitários + banco no PGlite, sem tocar o banco real) · `npm run test:http` (com `next start -p 3100` ligado).
 
 ## Segurança
-**Superfície de ataque:** site sem banco de dados, login, sessão, cookies, upload nem API de escrita. Os únicos dados do cliente (pedido) ficam no navegador dele (`localStorage`) e só saem por um link `wa.me`. As únicas rotas de servidor são `GET` estáticas (`llms.txt`, `llms-full.txt`, `ai.txt`).
+**Superfície de ataque:** login (Google e admin com 2FA), Server Actions, `/api/*`, Realtime (canais privados) e a API
+REST do Supabase (protegida por RLS em todas as tabelas). Detalhes, achados e pendências em `RELATORIO.md` (Fases 4–5).
 
 **Já aplicado no código**
 - `next.config.ts`: CSP (`default-src 'self'`, sem scripts de publicidade (só Vercel Web Analytics e Speed Insights, mesma origem e sem cookies), `frame-ancestors 'none'`, `form-action 'self'`, `upgrade-insecure-requests`), HSTS com preload, `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, COOP, sem `X-Powered-By`, sem source maps no navegador.
