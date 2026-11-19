@@ -31,6 +31,7 @@ test('áreas logadas mandam para o login (sem vazar conteúdo)', { skip: !online
   await redirecionaPara('/admin', '/admin/login');
   await redirecionaPara('/admin/loja', '/admin/login');
   await redirecionaPara('/admin/configuracoes', '/admin/login');
+  await redirecionaPara('/admin/auditoria', '/admin/login');
   await redirecionaPara(`/admin/imprimir/${UUID0}`, '/admin/login');
   await redirecionaPara(`/entregador/${UUID0}`, '/entregador');
 });

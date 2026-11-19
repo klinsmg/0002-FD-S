@@ -49,7 +49,7 @@ export default async function Entrega({ params }: { params: Promise<{ id: string
       {ativa && e.dest_approx && <p className="nota" role="note">O endereço foi localizado só de forma aproximada no mapa. Confirme a casa com o cliente; o botão &quot;Entregue&quot; libera a até 300 m.</p>}
       {ativa ? (
         <Rastreador id={e.id} destino={{ lat: e.dest_lat, lng: e.dest_lng }}
-          raio={e.dest_approx ? Math.max(loja?.delivery_confirm_radius_m ?? 50, 300) : (loja?.delivery_confirm_radius_m ?? 50)} precisaoMax={loja?.gps_max_accuracy_m ?? 30} />
+          raio={e.dest_approx ? Math.max(loja?.delivery_confirm_radius_m ?? 50, 300) : (loja?.delivery_confirm_radius_m ?? 50)} precisaoMax={loja?.gps_max_accuracy_m ?? 30} iniciada={e.status !== 'assigned'} />
       ) : (
         <p className="nota" role="status">Esta entrega está encerrada ({ETAPA_ENTREGA[e.status].toLowerCase()}). A localização não é mais coletada.</p>
       )}

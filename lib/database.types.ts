@@ -294,7 +294,7 @@ export type Database = {
           {
             foreignKeyName: "deliveries_order_id_fkey"
             columns: ["order_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
@@ -948,6 +948,10 @@ export type Database = {
           p_lng: number
           p_speed_kmh: number
         }
+        Returns: string
+      }
+      courier_return_delivery: {
+        Args: { p_delivery_id: string; p_motivo: string }
         Returns: string
       }
       courier_set_eta: {

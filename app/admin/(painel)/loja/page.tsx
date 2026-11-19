@@ -41,6 +41,12 @@ export default async function Loja({ searchParams }: { searchParams: Promise<{ e
     supabase.from('deliveries').select('order_id, courier_id, status').in('status', ['assigned', 'en_route', 'arriving', 'arrived']),
   ]);
   const ativos = (entregadores ?? []).filter(c => c.active);
+  // pedido de entrega que voltou do entregador (recusa/falha): mostra o motivo no cartão
+  const prontosEntrega = (abertos ?? []).filter(p => p.status === 'ready' && p.order_type === 'delivery').map(p => p.id);
+  const { data: voltas } = prontosEntrega.length
+    ? await supabase.from('order_events').select('order_id, type, data, created_at').in('order_id', prontosEntrega).in('type', ['ENTREGA_RECUSADA', 'FALHA_NA_ENTREGA']).order('created_at', { ascending: false })
+    : { data: [] };
+  const MOTIVO: Record<string, string> = { recusada: 'o entregador recusou', cliente_ausente: 'cliente ausente', endereco_nao_encontrado: 'endereço não encontrado', outro: 'outro motivo' };
   const nomeDe = (id: string | null) => { const c = entregadores?.find(x => x.user_id === id); return c?.name || c?.email || 'entregador'; };
   const todos = [...(abertos ?? []), ...(fechados ?? [])];
   const novos = (abertos ?? []).filter(p => p.status === 'pending').map(p => ({ id: p.id, n: p.order_number }));
@@ -88,6 +94,7 @@ export default async function Loja({ searchParams }: { searchParams: Promise<{ e
                       <p className="ped-total"><span>{p.payment_method ? PAGAMENTO[p.payment_method] ?? p.payment_method : 'Pagamento a definir'}</span><b>{reais(p.total_cents)}{p.has_price_pending ? ' +' : ''}</b></p>
                       <div className="ped-acoes">
                         {p.status === 'out_for_delivery' && (() => { const d = entregas?.find(x => x.order_id === p.id); return <p className="ped-st">{d ? `Com ${nomeDe(d.courier_id)} · ${ETAPA[d.status] ?? d.status}.` : 'Saiu para entrega.'} O entregador confirma no endereço.</p>; })()}
+                        {p.status === 'ready' && entrega && (() => { const v = voltas?.find(x => x.order_id === p.id); const m = (v?.data as { motivo?: string } | null)?.motivo; return v ? <p className="ped-st ped-volta" role="note">Voltou da entrega: {MOTIVO[m ?? ''] ?? 'sem motivo'}. Despache de novo ou cancele.</p> : null; })()}
                         {p.status === 'ready' && entrega && (ativos.length ? (
                           <form action={despacharPedido} className="ped-despacho">
                             <input type="hidden" name="id" value={p.id} />

@@ -4,6 +4,7 @@ import { reais } from '@/lib/conta';
 import { alternarProduto, excluirProduto, salvarProduto } from '@/app/admin/(painel)/actions';
 import Confirmar from '@/components/Confirmar';
 import BotaoEnviar from '@/components/BotaoEnviar';
+import BuscaLista from '@/components/BuscaLista';
 
 export const metadata = { title: 'Produtos' };
 const MSG: Record<string, string> = {
@@ -44,13 +45,15 @@ export default async function Produtos({ searchParams }: { searchParams: Promise
           <button className="btn btn-p" type="submit">Filtrar</button>
         </form>
         <p className="nota">Preço da variante (P/G, 500 ml/1 L) não é editado aqui: produto com variantes usa o preço de cada uma.</p>
+        <BuscaLista alvo="#lista-produtos" rotulo="Buscar produto" placeholder="Buscar produto pelo nome…" />
+        {!prods?.length && <p className="nota">Nenhum produto nesta categoria.</p>}
 
-        <div className="adm-rolagem">
+        <div className="adm-rolagem" id="lista-produtos">
           <table className="adm-tab">
             <thead><tr><th>Nome</th><th>Categoria</th><th>Preço</th><th>Ativo</th><th>Ações</th></tr></thead>
             <tbody>
               {prods?.map(p => (
-                <tr key={p.id}>
+                <tr key={p.id} data-busca={`${p.name} ${p.group_label ?? ''} ${p.category_id ? nomeCat.get(p.category_id) ?? '' : ''}`}>
                   <td>{p.name}{p.group_label ? <small className="nota"> · {p.group_label}</small> : null}</td>
                   <td>{p.category_id ? nomeCat.get(p.category_id) : '—'}</td>
                   <td>{p.price_cents == null ? 'a confirmar / variantes' : reais(p.price_cents)}</td>
@@ -66,6 +69,9 @@ export default async function Produtos({ searchParams }: { searchParams: Promise
           </table>
         </div>
 
+        {/* formulário recolhido: abre no botão, ou já aberto ao editar / quando deu erro */}
+        <details className="adm-novo" open={!!atual || !!erro} id="form-produto">
+          <summary className="btn btn-p">{atual ? `Editando: ${atual.name}` : '+ Adicionar produto'}</summary>
         <h2 className="conta-tit">{atual ? 'Editar produto' : 'Novo produto'}</h2>
         <form className="form" action={salvarProduto} key={atual?.id ?? 'novo'}>
           {atual && <input type="hidden" name="id" value={atual.id} />}
@@ -92,6 +98,7 @@ export default async function Produtos({ searchParams }: { searchParams: Promise
           <BotaoEnviar pendente="Salvando…">{atual ? 'Salvar alterações' : 'Criar produto'}</BotaoEnviar>
           {atual && <Link className="nota" href="/admin/produtos">Cancelar edição</Link>}
         </form>
+        </details>
       </div>
     </main>
   );

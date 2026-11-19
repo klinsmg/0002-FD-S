@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { horariosLoja } from '@/lib/horarios';
 import Link from 'next/link';
 import Mapa from '@/components/Mapa';
 import { info, mapa } from '@/lib/info';
@@ -31,7 +32,8 @@ export const metadata = {
   description: 'MDogão Itapevi: hambúrgueres artesanais, hot dog, pastéis, porções e rodízio em Itapevi-SP. Desde 1995. Veja o cardápio e faça seu pedido pelo site.',
 };
 
-export default function Home() {
+export default async function Home() {
+  const horarios = await horariosLoja();
   return (
     <main>
       {/* HERO */}
@@ -169,7 +171,7 @@ export default function Home() {
               <a href={mapa} target="_blank" rel="noopener noreferrer">{info.rua}<br />{info.bairro}</a>
             </address>
             <dl className="hor">
-              {info.horarios.map(([d, h]) => <div key={d}><dt>{d}</dt><dd>{h}</dd></div>)}
+              {horarios.map(([d, h]) => <div key={d}><dt>{d}</dt><dd>{h}</dd></div>)}
             </dl>
             <div className="flex flex-wrap gap-3 mt-[26px]">
               <Link className="btn btn-p" href="/cardapio">Realizar pedido</Link>

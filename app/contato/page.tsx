@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { horariosLoja } from '@/lib/horarios';
 import Mapa from '@/components/Mapa';
 import { info, wa, mapa } from '@/lib/info';
 import { A } from '@/lib/alp';
@@ -9,7 +10,8 @@ export const metadata = { title: 'Contato da Lanchonete em Itapevi', description
 const limpa = String.raw`s=>s.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060-\u2069\ufeff]/g,' ').replace(/\s+/g,' ').trim()`;
 const envia = `window.open('https://wa.me/${info.wa}?text='+encodeURIComponent('Olá! Meu nome é '+(${limpa})(nome).slice(0,60)+'. '+(${limpa})(msg).slice(0,500)),'_blank','noopener,noreferrer')`;
 
-export default function Contato() {
+export default async function Contato() {
+  const horarios = await horariosLoja();
   return (
     <main>
       <header className="pg-cab wrap">
@@ -34,7 +36,7 @@ export default function Contato() {
             <li><b>Instagram</b><a href={info.insta} target="_blank" rel="noopener noreferrer">{info.instaUser}</a></li>
             <li><b>E-mail</b><a href={`mailto:${info.email}`}>{info.email}</a></li>
             <li><b>Endereço</b><a href={mapa} target="_blank" rel="noopener noreferrer">{info.rua}, {info.bairro}</a></li>
-            {info.horarios.map(([d, h]) => <li key={d}><b>{d}</b><span>{h}</span></li>)}
+            {horarios.map(([d, h]) => <li key={d}><b>{d}</b><span>{h}</span></li>)}
           </ul>
         </div>
         <Mapa />

@@ -3,6 +3,7 @@ import Logo from './Logo';
 import RodapeLinha from './RodapeLinha';
 import { nav } from './links';
 import { info, wa, mapa } from '@/lib/info';
+import { horariosLoja } from '@/lib/horarios';
 
 // Estrutura do footer do template (logo, chamada, redes, nav principal, nav legal, aviso) com os dados do Dogão.
 const sociais: [string, string, React.ReactNode][] = [
@@ -12,7 +13,8 @@ const sociais: [string, string, React.ReactNode][] = [
   ['Como chegar', mapa, <><path d="M12 21s7-5.6 7-11a7 7 0 0 0-14 0c0 5.4 7 11 7 11z" /><circle cx="12" cy="10" r="2.6" /></>],
 ];
 
-export default function Footer() {
+export default async function Footer() {
+  const horarios = await horariosLoja();
   return (
     <footer>
       <div className="logo-s"><Logo size={96} /></div>
@@ -25,7 +27,7 @@ export default function Footer() {
         ))}
       </div>
       <div className="nav1">{nav.map(([t, h]) => <Link key={h} href={h}>{t}</Link>)}</div>
-      <p className="end">{info.rua} · {info.bairro}<br />{info.horarios.map(([d, h]) => `${d}: ${h}`).join(' · ')}</p>
+      <p className="end">{info.rua} · {info.bairro}<br />{horarios.map(([d, h]) => `${d}: ${h}`).join(' · ')}</p>
       <RodapeLinha />
     </footer>
   );

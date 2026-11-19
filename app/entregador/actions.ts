@@ -28,3 +28,19 @@ export async function confirmarEntrega(id: string): Promise<Confirmacao> {
       return { erro: 'Esta entrega não está mais com você.' };
   }
 }
+
+const MOTIVOS = ['recusada', 'cliente_ausente', 'endereco_nao_encontrado', 'outro'] as const;
+export type Motivo = (typeof MOTIVOS)[number];
+
+// Recusar (antes de sair) ou devolver para a loja: o pedido volta para "Pronto" e a loja decide (novo entregador ou cancelar).
+export async function devolverEntrega(id: string, motivo: Motivo): Promise<Confirmacao> {
+  if (typeof id !== 'string' || !UUID.test(id) || !MOTIVOS.includes(motivo)) return { erro: 'Pedido inválido.' };
+  const { supabase, user, liberado } = await entregadorAtual();
+  if (!user || !liberado) return { erro: 'Sua conta não está liberada como entregador.' };
+  const { data, error } = await supabase.rpc('courier_return_delivery', { p_delivery_id: id, p_motivo: motivo });
+  if (error) return { erro: 'Não deu para avisar a loja agora. Tenta de novo.' };
+  if (data === 'already_started') return { erro: 'Você já saiu com o pedido. Use "Cliente ausente", "Endereço não encontrado" ou "Outro motivo".' };
+  if (data !== 'ok') return { erro: 'Esta entrega não está mais com você.' };
+  revalidatePath('/entregador');
+  return { ok: true };
+}

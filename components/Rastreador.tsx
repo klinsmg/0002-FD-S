@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { confirmarEntrega } from '@/app/entregador/actions';
+import { confirmarEntrega, devolverEntrega, type Motivo } from '@/app/entregador/actions';
 import { distanciaM } from '@/lib/regras';
 
 type Pos = { lat: number; lng: number; acc: number; vel: number | null; t: number };
@@ -20,7 +20,7 @@ const gravarFila = (id: string, f: Pos[]) => { try { localStorage.setItem(FILA(i
 
 // GPS do entregador: aviso LGPD -> watchPosition -> envia a cada 7 s em movimento / 25 s parado, com fila local para
 // reenviar quando a internet volta. "Entregue" só libera perto do endereço e com GPS preciso; o servidor confere de novo.
-export default function Rastreador({ id, destino, raio, precisaoMax }: { id: string; destino: { lat: number; lng: number }; raio: number; precisaoMax: number }) {
+export default function Rastreador({ id, destino, raio, precisaoMax, iniciada }: { id: string; destino: { lat: number; lng: number }; raio: number; precisaoMax: number; iniciada: boolean }) {
   const router = useRouter();
   const [estado, setEstado] = useState<Estado>('aviso');
   const [pos, setPos] = useState<Pos | null>(null);
@@ -87,11 +87,14 @@ export default function Rastreador({ id, destino, raio, precisaoMax }: { id: str
       ?.request('screen').then(l => { lock.current = l; }).catch(() => {});
   }
 
-  // quem já viu o aviso neste aparelho começa direto
+  // entrega já em andamento (ex.: recarregou a página no caminho) e aviso já visto: religa o GPS sozinho.
+  // Entrega nova: espera o entregador aceitar (ou recusar) — aceitar = ligar a localização.
+  const [jaViu, setJaViu] = useState(false);
   useEffect(() => {
     let visto = false;
     try { visto = localStorage.getItem(CONSENTIMENTO) === '1'; } catch {}
-    if (visto) iniciar();
+    setJaViu(visto);
+    if (visto && iniciada) iniciar();
     setPendentes(lerFila(id).length);
     const on = () => { setOnline(true); void despachar(null); }, off = () => setOnline(false);
     setOnline(navigator.onLine);
@@ -110,6 +113,15 @@ export default function Rastreador({ id, destino, raio, precisaoMax }: { id: str
     }, 1000);
     return () => clearInterval(t);
   }, [estado, despachar]);
+
+  const [devolvendo, setDevolvendo] = useState<Motivo | null>(null);
+  async function devolver(m: Motivo) {
+    setOcupado(true); setMsg('');
+    const r = await devolverEntrega(id, m);
+    setOcupado(false); setDevolvendo(null);
+    if ('ok' in r) { parar(); setEstado('encerrado'); setMsg(m === 'recusada' ? 'Pronto, a loja foi avisada e vai mandar outra pessoa.' : 'A loja foi avisada. Leve o pedido de volta.'); router.refresh(); return; }
+    setMsg(r.erro);
+  }
 
   async function entregue() {
     setOcupado(true); setMsg('');
@@ -130,7 +142,7 @@ export default function Rastreador({ id, destino, raio, precisaoMax }: { id: str
   if (estado === 'aviso') {
     return (
       <section className="ent-aviso" aria-labelledby="ent-aviso-t">
-        <h2 id="ent-aviso-t" className="conta-tit">Antes de sair: sua localização</h2>
+        <h2 id="ent-aviso-t" className="conta-tit">{jaViu ? 'Nova entrega' : 'Antes de sair: sua localização'}</h2>
         <p>Enquanto esta entrega estiver ativa, o MDogão usa o GPS do seu celular para mostrar ao cliente onde o pedido está e para confirmar a entrega no endereço.</p>
         <ul>
           <li>A coleta acontece <b>só durante entregas ativas</b> e para quando a entrega é finalizada ou você sai desta tela.</li>
@@ -138,7 +150,16 @@ export default function Rastreador({ id, destino, raio, precisaoMax }: { id: str
           <li>O histórico das posições é apagado <b>30 dias</b> depois da entrega.</li>
         </ul>
         <p className="nota">Detalhes e seus direitos na <Link href="/politica-de-privacidade#entregadores">Política de privacidade</Link>.</p>
-        <button type="button" className="btn btn-p" onClick={iniciar}>Entendi, ligar localização</button>
+        <button type="button" className="btn btn-p ent-aceitar" onClick={iniciar}>{iniciada ? 'Ligar localização' : 'Aceitar e sair para entrega'}</button>
+        {!iniciada && !devolvendo && <button type="button" className="btn btn-o" onClick={() => setDevolvendo('recusada')}>Recusar entrega</button>}
+        {devolvendo && (
+          <div className="ent-confirma" role="group" aria-label="Confirmar recusa">
+            <p><b>Recusar esta entrega?</b> A loja é avisada na hora e manda outra pessoa.</p>
+            <button type="button" className="btn btn-p" disabled={ocupado} onClick={() => devolver(devolvendo)}>{ocupado ? 'Avisando a loja…' : 'Sim, recusar'}</button>
+            <button type="button" className="btn btn-o" disabled={ocupado} onClick={() => setDevolvendo(null)}>Voltar</button>
+          </div>
+        )}
+        {msg && <p className="nota ent-msg" role="alert">{msg}</p>}
       </section>
     );
   }
@@ -182,6 +203,25 @@ export default function Rastreador({ id, destino, raio, precisaoMax }: { id: str
           <button type="button" className="btn btn-p" disabled={ocupado} onClick={entregue}>{ocupado ? 'Confirmando…' : 'Sim, entreguei'}</button>
           <button type="button" className="btn btn-o" disabled={ocupado} onClick={() => setConfirmando(false)}>Voltar</button>
         </div>
+      )}
+      {estado !== 'encerrado' && !confirmando && (
+        <details className="ent-problema">
+          <summary>{iniciada ? 'Não consegui entregar' : 'Não posso levar este pedido'}</summary>
+          {devolvendo ? (
+            <div className="ent-confirma" role="group" aria-label="Confirmar devolução">
+              <p><b>{devolvendo === 'recusada' ? 'Recusar esta entrega?' : 'Devolver o pedido para a loja?'}</b> O pedido volta para a loja, que manda de novo ou cancela.</p>
+              <button type="button" className="btn btn-p" disabled={ocupado} onClick={() => devolver(devolvendo)}>{ocupado ? 'Avisando a loja…' : 'Sim, avisar a loja'}</button>
+              <button type="button" className="btn btn-o" disabled={ocupado} onClick={() => setDevolvendo(null)}>Voltar</button>
+            </div>
+          ) : (
+            <div className="ent-motivos">
+              {!iniciada && <button type="button" className="btn btn-o" onClick={() => setDevolvendo('recusada')}>Recusar entrega</button>}
+              {iniciada && <button type="button" className="btn btn-o" onClick={() => setDevolvendo('cliente_ausente')}>Cliente ausente</button>}
+              {iniciada && <button type="button" className="btn btn-o" onClick={() => setDevolvendo('endereco_nao_encontrado')}>Endereço não encontrado</button>}
+              <button type="button" className="btn btn-o" onClick={() => setDevolvendo('outro')}>Outro motivo</button>
+            </div>
+          )}
+        </details>
       )}
       {msg && <p className="nota ent-msg" role="alert">{msg}</p>}
       {estado === 'encerrado' && <p><Link href="/entregador">Voltar para as entregas</Link></p>}

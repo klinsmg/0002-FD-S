@@ -58,3 +58,13 @@ test('posição aproximada para o cliente (3 casas)', () => {
   assert.equal(aproximar(-23.54567), -23.546);
   assert.equal(aproximar(-46.94123), -46.941);
 });
+
+import { agruparHorarios } from '../../lib/regras.ts';
+test('horários: junta dias seguidos iguais, como no site', () => {
+  const h = (weekday, a, f, closed = false) => ({ weekday, opens_at: a, closes_at: f, closed });
+  const atual = [h(0, '18:00:00', '01:00:00'), ...[1, 2, 3, 4, 5].map(d => h(d, '11:00:00', '01:00:00')), h(6, '18:00:00', '01:00:00')];
+  assert.deepEqual(agruparHorarios(atual), [['Segunda a sexta', '11h às 01h'], ['Sábado e domingo', '18h às 01h']]);
+  const comFolga = atual.map(x => x.weekday === 1 ? { ...x, closed: true } : x.weekday === 3 ? { ...x, opens_at: '11:30:00' } : x);
+  assert.deepEqual(agruparHorarios(comFolga), [['Segunda', 'Fechado'], ['Terça', '11h às 01h'], ['Quarta', '11h30 às 01h'], ['Quinta e sexta', '11h às 01h'], ['Sábado e domingo', '18h às 01h']]);
+  assert.deepEqual(agruparHorarios([]), []);
+});

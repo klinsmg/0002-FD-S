@@ -3,6 +3,7 @@ import { exigirAdmin } from '@/lib/admin';
 import { alternarCategoria, excluirCategoria, salvarCategoria } from '@/app/admin/(painel)/actions';
 import Confirmar from '@/components/Confirmar';
 import BotaoEnviar from '@/components/BotaoEnviar';
+import BuscaLista from '@/components/BuscaLista';
 
 export const metadata = { title: 'Categorias' };
 const MSG: Record<string, string> = {
@@ -28,12 +29,14 @@ export default async function Categorias({ searchParams }: { searchParams: Promi
       <div className="wrap adm-caixa">
         {ok && <p className="nota" role="status">Salvo.</p>}
         {erro && MSG[erro] && <p className="nota" role="alert">{MSG[erro]}</p>}
-        <div className="adm-rolagem">
+        <BuscaLista alvo="#lista-categorias" rotulo="Buscar categoria" placeholder="Buscar categoria…" />
+        {!cats?.length && <p className="nota">Nenhuma categoria ainda. Use “+ Adicionar categoria”.</p>}
+        <div className="adm-rolagem" id="lista-categorias">
           <table className="adm-tab">
             <thead><tr><th>Ordem</th><th>Nome</th><th>Slug</th><th>Ativa</th><th>Ações</th></tr></thead>
             <tbody>
               {cats?.map(c => (
-                <tr key={c.id}>
+                <tr key={c.id} data-busca={`${c.name} ${c.slug}`}>
                   <td>{c.sort_order}</td><td>{c.name}</td><td>{c.slug}</td><td>{c.active ? 'Sim' : 'Não'}</td>
                   <td className="conta-acoes">
                     <Link href={`/admin/categorias?editar=${c.id}`}>Editar</Link>
@@ -46,6 +49,8 @@ export default async function Categorias({ searchParams }: { searchParams: Promi
           </table>
         </div>
 
+        <details className="adm-novo" open={!!atual || !!erro} id="form-categoria">
+          <summary className="btn btn-p">{atual ? `Editando: ${atual.name}` : '+ Adicionar categoria'}</summary>
         <h2 className="conta-tit">{atual ? 'Editar categoria' : 'Nova categoria'}</h2>
         <form className="form" action={salvarCategoria} key={atual?.id ?? 'nova'}>
           {atual && <input type="hidden" name="id" value={atual.id} />}
@@ -70,6 +75,7 @@ export default async function Categorias({ searchParams }: { searchParams: Promi
           <BotaoEnviar pendente="Salvando…">{atual ? 'Salvar alterações' : 'Criar categoria'}</BotaoEnviar>
           {atual && <Link className="nota" href="/admin/categorias">Cancelar edição</Link>}
         </form>
+        </details>
       </div>
     </main>
   );

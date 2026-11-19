@@ -51,3 +51,23 @@ export function etaEstimada(a: { lat: number; lng: number }, b: { lat: number; l
 
 // Arredonda a posição exibida ao cliente (~100 m): ele nunca vê a posição exata do entregador
 export const aproximar = (x: number) => Math.round(x * 1000) / 1000;
+
+// Horários do banco (business_hours) -> linhas para o site, juntando dias seguidos iguais:
+// [['Segunda a sexta', '11h às 01h'], ['Sábado e domingo', '18h às 01h']]. Semana começa na segunda.
+export type Horario = { weekday: number; opens_at: string | null; closes_at: string | null; closed: boolean };
+const DIAS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+const hhmm = (t: string | null) => { if (!t) return ''; const [h, m] = t.split(':'); return `${h}h${m && m !== '00' ? m : ''}`; };
+export function agruparHorarios(linhas: Horario[]): [string, string][] {
+  const ordem = [1, 2, 3, 4, 5, 6, 0].map(d => linhas.find(l => l.weekday === d)).filter(Boolean) as Horario[];
+  const texto = (l: Horario) => (l.closed || !l.opens_at || !l.closes_at ? 'Fechado' : `${hhmm(l.opens_at)} às ${hhmm(l.closes_at)}`);
+  const grupos: { de: number; ate: number; t: string }[] = [];
+  for (const l of ordem) {
+    const g = grupos.at(-1), t = texto(l);
+    if (g && g.t === t && (g.ate + 1) % 7 === l.weekday) g.ate = l.weekday; else grupos.push({ de: l.weekday, ate: l.weekday, t });
+  }
+  return grupos.map(g => {
+    const n = (g.ate - g.de + 7) % 7;
+    const rot = n === 0 ? DIAS[g.de] : n === 1 ? `${DIAS[g.de]} e ${DIAS[g.ate].toLowerCase()}` : `${DIAS[g.de]} a ${DIAS[g.ate].toLowerCase()}`;
+    return [rot, g.t];
+  });
+}

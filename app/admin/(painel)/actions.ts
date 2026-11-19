@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { PAGAMENTO, STATUS_LISTA, exigirAdmin, paraCentavos, podeIr, type Status } from '@/lib/admin';
 import { limpa } from '@/lib/conta';
 import { geocodificar, temChaveServidor } from '@/lib/geo';
+import { PAGINAS_COM_HORARIO } from '@/lib/horarios';
 
 // Mutações do painel. Todas começam por exigirAdmin() e usam o cliente do USUÁRIO (RLS), nunca a service role.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -178,4 +179,35 @@ export async function configurarEntrega(f: FormData) {
   if (error) redirect('/admin/configuracoes?erro=falha#entrega');
   atualizar('/admin/configuracoes');
   redirect('/admin/configuracoes?ok=entrega#entrega');
+}
+
+// ---------- horário de funcionamento ----------
+// 7 dias de uma vez. Fecha depois da meia-noite (ex.: 18:00 às 01:00) é detectado sozinho.
+// Depois de salvar, regera as páginas públicas que mostram o horário (são estáticas).
+export async function salvarHorarios(f: FormData) {
+  const { supabase } = await exigirAdmin();
+  const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+  const linhas = [];
+  for (let d = 0; d < 7; d++) {
+    const fechado = f.get(`fechado-${d}`) === 'on';
+    const abre = String(f.get(`abre-${d}`) ?? ''), fecha = String(f.get(`fecha-${d}`) ?? '');
+    if (!fechado && (!HORA.test(abre) || !HORA.test(fecha) || abre === fecha)) redirect(`/admin/configuracoes?erro=horario&dia=${d}#horarios`);
+    linhas.push({ weekday: d, closed: fechado, opens_at: fechado ? null : abre, closes_at: fechado ? null : fecha, closes_next_day: !fechado && fecha < abre });
+  }
+  for (const l of linhas) {
+    const { error } = await supabase.from('business_hours').update(l).eq('weekday', l.weekday);
+    if (error) redirect('/admin/configuracoes?erro=falha#horarios');
+  }
+  PAGINAS_COM_HORARIO.forEach(p => revalidatePath(p));
+  revalidatePath('/', 'layout'); // o rodapé de todas as páginas
+  atualizar('/admin/configuracoes');
+  redirect('/admin/configuracoes?ok=horarios#horarios');
+}
+
+// LGPD: apaga as posições de GPS de entregas encerradas há mais de 30 dias (função do banco, só admin)
+export async function limparGpsAntigo() {
+  const { supabase } = await exigirAdmin();
+  const { data } = await supabase.rpc('purge_delivery_positions');
+  atualizar('/admin/auditoria');
+  redirect(`/admin/auditoria?ok=${Number(data ?? 0)}#privacidade`);
 }

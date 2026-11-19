@@ -12,7 +12,8 @@ export const metadata = { title: 'Seu pedido', robots: { index: false, follow: f
 const EVENTO: Record<string, string> = {
   PEDIDO_CRIADO: 'Pedido recebido', PEDIDO_CONFIRMADO: 'Pedido confirmado', EM_PREPARO: 'Em preparo', PRONTO: 'Pronto', PRONTO_PARA_RETIRADA: 'Pronto para retirada',
   SAIU_PARA_ENTREGA: 'Saiu para entrega', EM_ROTA: 'A caminho', CHEGANDO: 'Chegando', CHEGOU_NO_LOCAL: 'O entregador chegou',
-  ENTREGUE: 'Entregue', RETIRADO: 'Retirado', CANCELADO: 'Cancelado', FALHA_NA_ENTREGA: 'Falha na entrega',
+  ENTREGUE: 'Entregue', RETIRADO: 'Retirado', CANCELADO: 'Cancelado', FALHA_NA_ENTREGA: 'A entrega não foi concluída; o pedido voltou para a loja',
+  ENTREGA_RECUSADA: 'Trocando de entregador',
 };
 const hora = (d: string) => new Date(d).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

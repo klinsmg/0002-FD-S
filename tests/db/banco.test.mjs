@@ -628,4 +628,45 @@ console.log('23) Funções auxiliares diretas');
   check('order_status_ok espelha o fluxo', so.a === true && so.b === false);
   await su();
 }
+console.log('24) Entregador devolve/recusa a entrega (018)');
+{
+  await su();
+  const D18 = fileURLToPath(new URL('../../supabase/rollback/018_down.sql', import.meta.url));
+  check('rollback 018 aplica (sem tentativas repetidas)', !(await erro(() => db.exec(readFileSync(D18, 'utf8')))));
+  check('reaplicar 018', !(await erro(() => db.exec(readFileSync(DIR + files.find(x => x.startsWith('018')), 'utf8')))));
+  const K = P(95), K2 = P(96), CL = P(97);
+  await db.query(`insert into auth.users (id, email) values ($1,'dev1@x.com'),($2,'dev2@x.com')`, [K, K2]);
+  await mk(CL, { full_name: 'Cli Devolve' });
+  await como('authenticated', CL);
+  const addr = { street: 'Rua D', number: '4', district: 'Centro', city: 'Itapevi', state: 'SP', zip_code: '06653000' };
+  const pid = (await ped([{ product_id: agua.id, quantity: 1 }], { tipo: 'delivery', addr }))[0].r_order_id;
+  await como('authenticated', ADM);
+  await q(`select public.admin_set_courier('dev1@x.com', true)`); await q(`select public.admin_set_courier('dev2@x.com', true)`);
+  await q(`update public.orders set status='preparing' where id=$1`, [pid]); await q(`update public.orders set status='ready' where id=$1`, [pid]);
+  const d1 = (await q('select public.dispatch_order($1,$2,$3,$4) id', [pid, K, -23.5367, -46.9342]))[0].id;
+  const dev = (id, m) => q('select public.courier_return_delivery($1,$2) r', [id, m]).then(x => x[0].r);
+  await como('authenticated', K2);
+  check('outro entregador NÃO devolve', (await dev(d1, 'recusada')) === 'not_assigned');
+  await como('authenticated', K);
+  check('motivo inválido recusado', (await dev(d1, 'xpto')) === 'invalid_reason');
+  check('recusa antes de sair: ok', (await dev(d1, 'recusada')) === 'ok');
+  await su();
+  check('pedido voltou para Pronto e entrega cancelada', (await q('select status from public.orders where id=$1', [pid]))[0].status === 'ready'
+    && (await q('select status from public.deliveries where id=$1', [d1]))[0].status === 'cancelled');
+  await como('authenticated', ADM);
+  const d2 = (await q('select public.dispatch_order($1,$2,$3,$4) id', [pid, K2, -23.5367, -46.9342]))[0].id;
+  check('loja despacha de novo para outro entregador', !!d2 && d2 !== d1);
+  check('não dá para ter duas entregas ativas', !!(await erro(() => q(`insert into public.deliveries (order_id, courier_id, dest_lat, dest_lng) values ($1,$2,0,0)`, [pid, K]))) );
+  await como('authenticated', K2);
+  await q(`select public.courier_report_position($1,-23.5300,-46.9342,8,30,$2::timestamptz)`, [d2, new Date(Date.now() - 5000).toISOString()]);
+  check('depois de sair, "recusar" não vale (já começou)', (await dev(d2, 'recusada')) === 'already_started');
+  check('cliente ausente: devolve', (await dev(d2, 'cliente_ausente')) === 'ok');
+  await su();
+  const ev = (await q(`select string_agg(type || coalesce(':' || (data->>'motivo'), ''), ',' order by id) t from public.order_events where order_id=$1 and type in ('ENTREGA_RECUSADA','FALHA_NA_ENTREGA')`, [pid]))[0].t;
+  check('linha do tempo registra recusa e falha com motivo', ev === 'ENTREGA_RECUSADA:recusada,FALHA_NA_ENTREGA:cliente_ausente', ev);
+  check('pedido de volta em Pronto', (await q('select status from public.orders where id=$1', [pid]))[0].status === 'ready');
+  await como('authenticated', ADM);
+  check('loja pode cancelar depois da devolução', !(await erro(() => q(`update public.orders set status='cancelled' where id=$1`, [pid]))));
+  await su();
+}
 console.log(`\nResultado: ${ok} ok, ${f} falhas`); process.exit(f ? 1 : 0);

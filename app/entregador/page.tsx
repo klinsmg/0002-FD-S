@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { entregadorAtual, ATIVAS, ETAPA_ENTREGA } from '@/lib/entregador';
 import { enderecoTexto } from '@/lib/admin';
+import { reais } from '@/lib/conta';
 import SocialLoginButtons from '@/components/SocialLoginButtons';
 import Recarregar from '@/components/Recarregar';
 
@@ -29,16 +30,31 @@ export default async function Entregador() {
     );
   }
 
-  const { data: entregas } = await supabase
-    .from('deliveries')
-    .select('id, status, created_at, orders(order_number, customer_name, delivery_address, total_cents)')
-    .in('status', [...ATIVAS])
-    .order('created_at');
+  const semana = new Date(Date.now() - 7 * 864e5).toISOString();
+  const [{ data: entregas }, { data: feitas }] = await Promise.all([
+    supabase.from('deliveries')
+      .select('id, status, created_at, orders(order_number, customer_name, delivery_address, total_cents)')
+      .in('status', [...ATIVAS]).eq('courier_id', user.id).order('created_at'),
+    supabase.from('deliveries')
+      .select('finished_at, orders(delivery_fee_cents)')
+      .eq('status', 'delivered').eq('courier_id', user.id).gte('finished_at', semana).limit(500),
+  ]);
+  // resumo: "hoje" no fuso de São Paulo
+  const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+  const dia = (d: string | null) => (d ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(d)) : '');
+  const deHoje = (feitas ?? []).filter(f => dia(f.finished_at) === hoje);
+  const taxas = (feitas ?? []).reduce((t, f) => t + (f.orders?.delivery_fee_cents ?? 0), 0);
 
   return (
     <main className="wrap conta-caixa ent">
       <Recarregar segundos={20} />
       <header className="pg-cab"><p className="script">área do</p><h1><em>Entregador</em></h1></header>
+      <ul className="ent-resumo" aria-label="Seu resumo">
+        <li><b>{deHoje.length}</b><span>entregas hoje</span></li>
+        <li><b>{feitas?.length ?? 0}</b><span>nos últimos 7 dias</span></li>
+        <li><b>{reais(taxas)}</b><span>em taxas de entrega (7 dias)</span></li>
+      </ul>
+      <h2 className="conta-tit">Para entregar agora</h2>
       {!entregas?.length && <p className="nota">Nenhuma entrega com você agora. Quando a loja te mandar uma, ela aparece aqui.</p>}
       <ul className="ped-lista">
         {entregas?.map(e => (

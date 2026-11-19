@@ -113,3 +113,56 @@ fontes via `next/font`; cache de CDN em mídias; compressão gzip/brotli pelo Ne
 
 ### Regressão
 Fase 1 rodada de novo: unitários 7/7, banco 262/262, HTTP 19/19.
+
+---
+
+## Fase 3 — Interfaces (Loja/Admin, Entregador, Cliente)
+
+> Limite de verificação: as telas logadas (painel, app do entregador, conta) não puderam ser abertas no navegador,
+> porque não há conta de teste nem ambiente de dev (criar conta/sessão no Supabase de produção ficou fora do escopo
+> autônomo). Elas foram validadas por tipos (`tsc`), build, testes do banco das regras que exibem e revisão do código;
+> as telas públicas e de login foram verificadas no navegador em 390 px e 1366 px (sem rolagem horizontal; alvos de toque ≥ 24 px).
+
+### Entregador (uso em campo, celular)
+| Antes | Depois |
+|---|---|
+| Sem como recusar um pedido nem devolver uma entrega que não deu certo: o pedido ficava preso em "Saiu para entrega" | **Aceitar ou recusar** antes de sair; depois de sair, **"Não consegui entregar"** com motivo (cliente ausente, endereço não encontrado, outro). O pedido volta para "Pronto", a loja é avisada na hora e despacha de novo ou cancela (migração `018`, testada: 14 checagens) |
+| GPS ligava sozinho ao abrir a entrega (o que também impediria a recusa) | O GPS liga ao **aceitar**; se a entrega já estava em andamento (ex.: recarregou a página), religa sozinho |
+| Sem visão de produção | **Resumo**: entregas de hoje, dos últimos 7 dias e soma das taxas de entrega (7 dias) |
+| Endereço localizado só pelo CEP travava a confirmação | Aviso "endereço aproximado" e raio de 300 m (Fase 1) |
+| Checkbox "Manter conectado" com alvo de toque pequeno | Alvo ≥ 44 px |
+
+### Loja / Admin
+- **Menu reorganizado pela ordem de uso no dia a dia:** Loja (quadro) → Pedidos → Painel → Produtos → Categorias →
+  Relatórios → **Auditoria** (nova) → Configurações.
+- **Horário de funcionamento editável** (Configurações › Horários): antes só existia no código (`lib/info.ts`). Agora o
+  site (início, contato, rodapé) lê do banco e as páginas continuam estáticas: ao salvar, elas são regeradas. Se o banco
+  falhar, usa o horário fixo. Fecha depois da meia-noite é detectado sozinho. Regra de agrupamento ("Segunda a sexta")
+  testada em `tests/unit`.
+- **Auditoria** (`/admin/auditoria`): linha do tempo dos pedidos (com distância/precisão da confirmação de entrega e
+  motivos de devolução), tentativas barradas pelos limites de segurança (IP mascarado na tela) e o botão de **retenção
+  LGPD** (apagar GPS com mais de 30 dias, com confirmação).
+- **Quadro da loja:** pedido que voltou do entregador mostra o motivo ("Voltou da entrega: cliente ausente").
+- **Produtos e Categorias:** busca **instantânea** (sem recarregar, ignora acentos, mensagem "Nada encontrado"),
+  estado vazio claro, e o formulário de cadastro **recolhido** num botão "+ Adicionar" (abre sozinho ao editar ou quando
+  há erro; animação de 220 ms que respeita `prefers-reduced-motion`).
+- "Realizar pedido" no cabeçalho não aparece mais no login, no painel nem no app do entregador.
+
+### Cliente
+- Linha do tempo do pedido mostra "Trocando de entregador" / "a entrega não foi concluída; o pedido voltou para a loja".
+
+### Acessibilidade e consistência
+Foco visível (`:focus-visible`) já existia em links, botões e campos; os componentes novos reutilizam os tokens e
+classes existentes (`btn`, `nota`, `canais`, `conta-tit`), usam `<details>`/`<fieldset>`/`<label>` nativos, `role="status"`
+/`aria-live` nas mensagens, e todas as animações novas respeitam `prefers-reduced-motion`.
+
+### Regressão
+Unitários 8/8 · banco 276/276 · HTTP 20/20.
+
+### Não feito nesta fase (registrado)
+- "Ganhos" do entregador mostra a soma das **taxas de entrega** dos pedidos dele: o sistema não tem cadastro de quanto
+  cada entregador recebe por corrida. Se houver regra de pagamento, dá para trocar a soma.
+- Gestão de "usuários" além de entregadores (ex.: listar clientes) não foi criada: o painel não tem esse caso de uso hoje
+  e listar dados de clientes sem necessidade vai contra a minimização da LGPD.
+- Produtos em grade com foto (pedido antigo do bloco 15) ficou como tabela com busca: as fotos dos produtos ainda não
+  estão cadastradas (`image_url` vazio).
