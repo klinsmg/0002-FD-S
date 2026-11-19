@@ -166,3 +166,62 @@ Unitários 8/8 · banco 276/276 · HTTP 20/20.
   e listar dados de clientes sem necessidade vai contra a minimização da LGPD.
 - Produtos em grade com foto (pedido antigo do bloco 15) ficou como tabela com busca: as fotos dos produtos ainda não
   estão cadastradas (`image_url` vazio).
+
+---
+
+## Fase 4 — Teste de vulnerabilidades
+
+Ambiente: tudo local. Banco: PGlite com todas as migrações (ataques simulados por papel: anônimo, cliente, outro cliente,
+entregador, outro entregador, admin com e sem 2FA, service_role). HTTP: servidor local. Nenhum ataque contra produção.
+Varreduras: `npm audit`, histórico completo do git (padrões de chave Google, segredo/JWT do Supabase, chave privada,
+senha), busca por sinks de XSS, endpoints de debug e logs.
+
+### 4.1 Reteste das vulnerabilidades já conhecidas (`supabase/revisao/RELATORIO_REVISAO.md` + sessões anteriores)
+| Item anterior | Situação | Evidência |
+|---|---|---|
+| B1 bootstrap de admin em `migrations/` | Corrigido | não existe mais |
+| A1 tabelas duplicadas PT/EN | Corrigido | teste "nenhuma tabela em português" |
+| A2 RPCs públicas sem limite (spam) | Corrigido | teste "freio/limite diário", `create_contact` com limite |
+| A3 taxa/desconto impossíveis | Corrigido | testes `admin_set_order_amounts` |
+| A4 gatilho impedia importar histórico | Corrigido | teste "postgres/service_role preservam status e data" |
+| M1 nome do Apple em objeto | Corrigido | 3 testes "Apple" |
+| M2 nome do perfil sem limpeza | Corrigido | gatilho `profiles_clean` + testes |
+| M3/M4 FKs e "meus pedidos" sem índice | Corrigido | teste "toda chave estrangeira tem índice" |
+| M6 login anônimo como cliente | Corrigido | teste "LOGIN ANÔNIMO não faz pedido" |
+| M7 LGPD pós-exclusão de conta | Corrigido | `anonymize_customer_data` + testes |
+| M9 callback/COOP/CSP/cookies | Corrigido | testes HTTP de cabeçalhos; cookies httpOnly |
+| A2/bloco 10 força bruta | Corrigido | limites por usuário/IP/aparelho (testes seção 18) |
+| L1, L2, L8, L9 | Aceitos (documentados na revisão) | — |
+| L6 `image_url` com qualquer https | Mitigado | CSP `img-src` só libera o próprio site e domínios do Google |
+| M8 config do Auth local | N/A em produção | a configuração real fica no painel do Supabase |
+
+### 4.2 Achados novos
+| # | Severidade | Achado | Como reproduzir | Impacto | Correção |
+|---|---|---|---|---|---|
+| **V1** | **Alta** | **2FA do admin não valia no banco.** `is_admin()` só olhava o papel; o 2FA (aal2) era conferido só nas telas do painel | Fazer login com e-mail/senha do admin direto na API pública do Supabase Auth (URL e chave publicável são públicas) → token aal1 → chamar a API REST: lê/altera todos os pedidos, libera entregador etc. Reproduzido no PGlite (teste V1: 4 falhas antes da correção) | Quem descobrir a senha do admin opera como admin **sem o código do autenticador** | `is_admin()` passa a exigir `aal2` no JWT (migração 019) |
+| **V2** | **Média** | **Limite de tentativas confiava no IP informado por quem chama.** `access_check` era executável por `anon` e recebia o IP como parâmetro | `POST /rest/v1/rpc/access_check` com `p_action=login_admin` e o IP da loja, 16× → o IP da loja fica bloqueado no login do painel por 15 min (repetível). Também permite "trocar de IP" à vontade ao chamar direto | Negação de serviço do login do admin; burla do limite por IP | Só o servidor (service_role) chama, informando o usuário já verificado; `anon`/`authenticated` perdem a permissão (migração 019 + `lib/protecao.ts`) |
+| **V3** | Baixa | **Corrida no limite de 5 pedidos/dia.** O gatilho conta e insere sem trava | Disparar vários `create_order` ao mesmo tempo com o 5º pedido pendente | Alguns pedidos acima do limite | `pg_advisory_xact_lock` por cliente no gatilho (migração 019) |
+| **V4** | Baixa | **`log_denied` executável por qualquer conta** | Chamar a RPC em loop | Enche o log de segurança (ruído/armazenamento) | Só service_role (migração 019) |
+| **V5** | Moderada (sem impacto aqui) | **Next.js 16.4.4** — GHSA-mfr8-8qww-v76h (vazamento de cache com `'use cache'`) | `npm audit` | O projeto não usa `'use cache'`/`unstable_cache` (0 arquivos), então não é explorável hoje | Atualizar para 16.4.6 (patch) |
+| **V6** | Baixa | **IP completo nos logs da Vercel** (`[protecao] bloqueado`) | Ver logs | Dado pessoal em log sem necessidade (LGPD: minimização) | Mascarar o IP no log |
+| **V7** | Baixa | **Token de acesso entregue ao JS para o Realtime** (`tokenTempoReal`) | Ler a resposta da Server Action | Com um XSS, o token (até 1 h) poderia ser usado na API. Sem o refresh token. | Aceito: é o mínimo necessário para o WebSocket autenticado; com V1 corrigido o token do admin sem 2FA não dá poderes; CSP restringe destinos |
+| **V8** | Média (conhecida) | **CSP com `'unsafe-inline'` e `'unsafe-eval'`** | Cabeçalho CSP | Reduz a proteção contra XSS | Pendente com justificativa: exigido pelo Alpine (build padrão) e pela hidratação do Next; a saída é migrar o carrinho para `@alpinejs/csp` + nonce |
+| **V9** | Baixa | **GPS falsificado pelo próprio entregador** (chamada direta com coordenadas inventadas) | Chamar `courier_report_position` com posições fabricadas coerentes | Confirmar entrega sem estar no local | Aceito (limite do modelo): velocidade/salto, horário, duplicadas e precisão são checados; auditoria guarda tudo. Evolução: prova de entrega (foto/código do cliente) |
+| **V10** | Baixa (configuração) | **Realtime com acesso público ligado** (padrão do Supabase) | Painel do Supabase › Realtime › Settings | Canais públicos com o mesmo nome poderiam receber mensagens forjadas (não verificado contra produção) | Desligar "Allow public access" no painel (o site só usa canais privados) |
+| V11 | Info | Chave da Maps **Embed** visível no HTML | Ver código-fonte do mapa | Por desenho da Embed API | Manter restrita por referenciador e só à Maps Embed API (instruções no `.env.example`) |
+
+### 4.3 Verificado e sem problema
+- **Segredos:** nenhuma chave/segredo no histórico do git; `.env*` nunca commitado; backups fora do git; a chave
+  service_role não é usada no navegador.
+- **Injeção SQL:** todo acesso ao banco é por PostgREST/RPC com parâmetros; nenhuma SQL montada com texto do usuário.
+- **XSS:** os 4 `dangerouslySetInnerHTML` usam constantes do código; o JSON-LD escapa `<`; Alpine só com `x-text`.
+- **CSRF:** Server Actions exigem mesma origem (Next); a API de GPS confere `Origin`; cookies `SameSite=Lax`; logout só por POST.
+- **SSRF:** chamadas externas só para URLs fixas do Google/ViaCEP; otimizador de imagens sem `remotePatterns`.
+- **Open redirect:** `/auth/callback` usa lista fixa de destinos.
+- **IDOR / escalonamento** (testes de banco): cliente não vê pedido/rastreio/eventos de outro; entregador não vê nem
+  mexe em entrega de outro; desativado perde acesso; cliente não usa funções de admin/entregador; ninguém publica no
+  canal de tempo real; colunas de pedido protegidas (mass assignment bloqueado por GRANT por coluna).
+- **Sessão:** cookies httpOnly + Secure (produção) + SameSite=Lax; JWT de 1 h com renovação; "manter conectado" opcional.
+- **Upload:** não existe upload de arquivo. **Webhooks de pagamento:** não existem (sem pagamento online).
+- **Endpoints de debug:** nenhum. **CORS:** rotas do Next sem CORS aberto.
+- **CSV do relatório:** proteção contra injeção de fórmula.
