@@ -151,7 +151,7 @@ export async function despacharPedido(f: FormData) {
   if (!temChaveServidor()) redirect('/admin/loja?erro=chave');
   const destino = await geocodificar((p.delivery_address ?? {}) as Record<string, string>);
   if (!destino) redirect('/admin/loja?erro=endereco');
-  const { error } = await supabase.rpc('dispatch_order', { p_order_id: id, p_courier_id: entregador, p_dest_lat: destino.lat, p_dest_lng: destino.lng });
+  const { error } = await supabase.rpc('dispatch_order', { p_order_id: id, p_courier_id: entregador, p_dest_lat: destino.lat, p_dest_lng: destino.lng, p_dest_approx: destino.aprox });
   if (error) redirect(`/admin/loja?erro=${error.message.includes('courier_not_found') ? 'entregador' : 'fluxo'}`);
   atualizar('/admin', '/admin/loja', '/admin/pedidos', `/admin/pedidos/${id}`, `/pedido/${id}`, '/entregador');
   redirect('/admin/loja');

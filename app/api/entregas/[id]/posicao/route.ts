@@ -1,5 +1,6 @@
 import { NextResponse, after, type NextRequest } from 'next/server';
 import { rotaEta } from '@/lib/geo';
+import { aproximar } from '@/lib/regras';
 import { cookies } from 'next/headers';
 import { usuarioAtual } from '@/lib/supabase/server';
 
@@ -46,8 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     after(async () => {
       const { data: d } = await supabase.from('deliveries').select('dest_lat, dest_lng, eta_updated_at').eq('id', id).maybeSingle();
       if (!d || (d.eta_updated_at && Date.now() - new Date(d.eta_updated_at).getTime() < 45_000)) return;
-      const r3 = (x: number) => Math.round(x * 1000) / 1000;
-      const e = await rotaEta({ lat: r3(lat), lng: r3(lng) }, { lat: d.dest_lat, lng: d.dest_lng });
+      const e = await rotaEta({ lat: aproximar(lat), lng: aproximar(lng) }, { lat: d.dest_lat, lng: d.dest_lng });
       await supabase.rpc('courier_set_eta', { p_delivery_id: id, p_eta_minutes: e.minutos, p_distance_km: e.km, p_polyline: e.polyline as string });
     });
   }

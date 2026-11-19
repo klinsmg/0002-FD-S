@@ -1,3 +1,5 @@
+import { etaEstimada } from '@/lib/regras';
+
 // Chamadas ao Google Maps Platform feitas SÓ no servidor, com a chave de backend (GOOGLE_MAPS_SERVER_KEY).
 // Essa chave nunca vai ao navegador: não tem NEXT_PUBLIC_ e este arquivo só é importado por Server Actions/Route Handlers.
 // Restrinja-a no Google Cloud a "Geocoding API" e "Routes API" (ver .env.example).
@@ -10,7 +12,8 @@ export const temChaveServidor = () => !!CHAVE();
 type Endereco = { street?: string; number?: string; district?: string; city?: string; state?: string; zip_code?: string };
 
 // Endereço do pedido -> coordenadas. Tenta o endereço completo e, se não achar, só o CEP.
-export async function geocodificar(e: Endereco): Promise<{ lat: number; lng: number } | null> {
+// aprox = true quando o Google só achou a região (centro do CEP/bairro): a confirmação usa raio maior (migration 017).
+export async function geocodificar(e: Endereco): Promise<{ lat: number; lng: number; aprox: boolean } | null> {
   const k = CHAVE();
   if (!k) return null;
   const cep = (e.zip_code ?? '').replace(/\D/g, '');
@@ -18,13 +21,14 @@ export async function geocodificar(e: Endereco): Promise<{ lat: number; lng: num
     `${e.street ?? ''}, ${e.number ?? ''} - ${e.district ?? ''}, ${e.city ?? ''} - ${e.state ?? ''}, ${cep}, Brasil`,
     cep && `${cep}, Brasil`,
   ].filter(Boolean) as string[];
-  for (const endereco of tentativas) {
+  for (const [i, endereco] of tentativas.entries()) {
     try {
       const url = `https://maps.googleapis.com/maps/api/geocode/json?region=br&language=pt-BR&address=${encodeURIComponent(endereco)}&key=${k}`;
       const r = await fetch(url, { signal: AbortSignal.timeout(6000), cache: 'no-store' });
       const j = await r.json();
-      const loc = j?.results?.[0]?.geometry?.location;
-      if (j.status === 'OK' && Number.isFinite(loc?.lat) && Number.isFinite(loc?.lng)) return { lat: loc.lat, lng: loc.lng };
+      const geo = j?.results?.[0]?.geometry, loc = geo?.location;
+      const preciso = i === 0 && ['ROOFTOP', 'RANGE_INTERPOLATED'].includes(geo?.location_type);
+      if (j.status === 'OK' && Number.isFinite(loc?.lat) && Number.isFinite(loc?.lng)) return { lat: loc.lat, lng: loc.lng, aprox: !preciso };
       if (j.status !== 'ZERO_RESULTS') { console.error('[geo] geocode', j.status, j.error_message ?? ''); return null; }
     } catch (err) { console.error('[geo] geocode falhou', String(err)); return null; }
   }
@@ -32,17 +36,12 @@ export async function geocodificar(e: Endereco): Promise<{ lat: number; lng: num
 }
 
 type Ponto = { lat: number; lng: number };
-const retaKm = (a: Ponto, b: Ponto) => {
-  const r = (x: number) => (x * Math.PI) / 180;
-  const h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2;
-  return 2 * 6371 * Math.asin(Math.sqrt(h));
-};
 
 // Rota e ETA com trânsito (Routes API, chave de backend). A origem já chega arredondada (~100 m): a rota mostrada
 // ao cliente não revela a posição exata do entregador. Sem chave ou com falha: estimativa em linha reta
 // (x1,4 pelo traçado das ruas, a 25 km/h de média urbana) e sem desenho de rota.
 export async function rotaEta(origem: Ponto, destino: Ponto): Promise<{ minutos: number; km: number; polyline: string | null }> {
-  const estimativa = () => { const km = retaKm(origem, destino) * 1.4; return { minutos: Math.max(1, Math.round((km / 25) * 60)), km: Math.round(km * 10) / 10, polyline: null }; };
+  const estimativa = () => ({ ...etaEstimada(origem, destino), polyline: null });
   const k = CHAVE();
   if (!k) return estimativa();
   try {

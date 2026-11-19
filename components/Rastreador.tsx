@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { confirmarEntrega } from '@/app/entregador/actions';
+import { distanciaM } from '@/lib/regras';
 
 type Pos = { lat: number; lng: number; acc: number; vel: number | null; t: number };
 type Estado = 'aviso' | 'pedindo' | 'ativo' | 'negado' | 'indisponivel' | 'encerrado';
@@ -12,12 +13,8 @@ const FILA = (id: string) => `gps-fila-${id}`;
 const MOVENDO_S = 7, PARADO_S = 25;   // intervalo de envio: em movimento / parado
 const VALIDADE_MS = 110_000;          // o servidor descarta posição com mais de 2 min
 
-// distância em metros (a mesma fórmula do banco, só para mostrar; quem decide é o servidor)
-function distancia(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
-  const r = (x: number) => (x * Math.PI) / 180;
-  const h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2;
-  return 2 * 6371000 * Math.asin(Math.sqrt(h));
-}
+// distância só para mostrar; quem decide é o servidor
+const distancia = distanciaM;
 const lerFila = (id: string): Pos[] => { try { return JSON.parse(localStorage.getItem(FILA(id)) || '[]'); } catch { return []; } };
 const gravarFila = (id: string, f: Pos[]) => { try { localStorage.setItem(FILA(id), JSON.stringify(f.slice(-30))); } catch {} };
 

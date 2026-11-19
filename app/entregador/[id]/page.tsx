@@ -17,7 +17,7 @@ export default async function Entrega({ params }: { params: Promise<{ id: string
   // RLS: só a entrega deste entregador (e o pedido dela) aparece
   const [{ data: e }, { data: loja }] = await Promise.all([
     supabase.from('deliveries')
-      .select('id, status, dest_lat, dest_lng, orders(order_number, customer_name, customer_phone, delivery_address, notes, payment_method, total_cents, has_price_pending, order_items(id, quantity, product_name, variant_label, doneness, notes))')
+      .select('id, status, dest_lat, dest_lng, dest_approx, orders(order_number, customer_name, customer_phone, delivery_address, notes, payment_method, total_cents, has_price_pending, order_items(id, quantity, product_name, variant_label, doneness, notes))')
       .eq('id', id).maybeSingle(),
     supabase.from('store_settings').select('delivery_confirm_radius_m, gps_max_accuracy_m').maybeSingle(),
   ]);
@@ -46,9 +46,10 @@ export default async function Entrega({ params }: { params: Promise<{ id: string
         <ul>{o.order_items.map(i => <li key={i.id}>{i.quantity}× {i.product_name}{i.variant_label ? ` (${i.variant_label})` : ''}{i.doneness ? ` · ${PONTO[i.doneness]}` : ''}{i.notes ? ` · ${i.notes}` : ''}</li>)}</ul>
       </details>
 
+      {ativa && e.dest_approx && <p className="nota" role="note">O endereço foi localizado só de forma aproximada no mapa. Confirme a casa com o cliente; o botão &quot;Entregue&quot; libera a até 300 m.</p>}
       {ativa ? (
         <Rastreador id={e.id} destino={{ lat: e.dest_lat, lng: e.dest_lng }}
-          raio={loja?.delivery_confirm_radius_m ?? 50} precisaoMax={loja?.gps_max_accuracy_m ?? 30} />
+          raio={e.dest_approx ? Math.max(loja?.delivery_confirm_radius_m ?? 50, 300) : (loja?.delivery_confirm_radius_m ?? 50)} precisaoMax={loja?.gps_max_accuracy_m ?? 30} />
       ) : (
         <p className="nota" role="status">Esta entrega está encerrada ({ETAPA_ENTREGA[e.status].toLowerCase()}). A localização não é mais coletada.</p>
       )}

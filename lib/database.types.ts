@@ -222,6 +222,7 @@ export type Database = {
           confirm_lng: number | null
           courier_id: string | null
           created_at: string
+          dest_approx: boolean
           dest_lat: number
           dest_lng: number
           distance_km: number | null
@@ -246,6 +247,7 @@ export type Database = {
           confirm_lng?: number | null
           courier_id?: string | null
           created_at?: string
+          dest_approx?: boolean
           dest_lat: number
           dest_lng: number
           distance_km?: number | null
@@ -270,6 +272,7 @@ export type Database = {
           confirm_lng?: number | null
           courier_id?: string | null
           created_at?: string
+          dest_approx?: boolean
           dest_lat?: number
           dest_lng?: number
           distance_km?: number | null
@@ -981,6 +984,7 @@ export type Database = {
       dispatch_order: {
         Args: {
           p_courier_id: string
+          p_dest_approx?: boolean
           p_dest_lat: number
           p_dest_lng: number
           p_order_id: string

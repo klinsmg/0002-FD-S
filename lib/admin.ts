@@ -1,33 +1,9 @@
 import { cache } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import type { Database } from '@/lib/database.types';
 
-export type Status = Database['public']['Enums']['order_status'];
-export const STATUS_LISTA: Status[] = ['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled'];
-
-// Fluxo da loja (o banco confere o mesmo na migration 012, função order_status_ok):
-//   Novo -> Em preparo -> Pronto -> entrega: Saiu para entrega | retirada: Entregue ("Retirado").
-// "Entregue" de pedido de ENTREGA não sai do painel: só pelo fluxo do entregador (bloco 11).
-// "Saiu para entrega" só pelo despacho (escolhe o entregador e geocodifica o endereço; migration 015).
-export function proximos(de: Status, tipo: string): Status[] {
-  switch (de) {
-    case 'pending': case 'confirmed': return ['preparing', 'cancelled'];
-    case 'preparing': return ['ready', 'cancelled'];
-    // entrega: "Saiu para entrega" é o despacho escolhendo o entregador (despacharPedido), não um passo simples
-    case 'ready': return tipo === 'delivery' ? ['cancelled'] : ['delivered', 'cancelled'];
-    case 'out_for_delivery': return ['cancelled'];
-    default: return [];
-  }
-}
-export const podeIr = (de: Status, para: Status, tipo: string) => proximos(de, tipo).includes(para);
-
-// Endereço de entrega (jsonb do pedido) em uma linha
-export const enderecoTexto = (e: unknown) => {
-  if (!e || typeof e !== 'object') return '';
-  const a = e as Record<string, string | undefined>;
-  return [`${a.street ?? ''}, ${a.number ?? ''}${a.complement ? ` – ${a.complement}` : ''}`, a.district, a.city && `${a.city}/${a.state ?? ''}`, a.reference && `Ref.: ${a.reference}`].filter(Boolean).join(' · ');
-};
+// regras puras (fluxo de status, endereço, centavos) vivem em lib/regras.ts, testadas em tests/unit
+export { STATUS_LISTA, proximos, podeIr, enderecoTexto, paraCentavos, doisDec, type Status } from '@/lib/regras';
 export const PAGAMENTO: Record<string, string> = { cash: 'Dinheiro', pix: 'Pix', credit_card: 'Cartão de crédito', debit_card: 'Cartão de débito', other: 'Outro' };
 
 // Guarda do painel: só profiles.role = 'admin'. Chamada em TODA página e ação (o layout sozinho não basta, pois não roda
@@ -72,12 +48,3 @@ export const diaBr = (d: string | null) => (d ? d.split('-').reverse().join('/')
 export const mesBr = (d: string | null) => (d ? d.slice(0, 7).split('-').reverse().join('/') : '');
 export const DATA = /^\d{4}-\d{2}-\d{2}$/;
 
-// "12,50" / "1.234,50" / "12.5" -> centavos. Vazio -> null (valor a confirmar). Inválido -> undefined.
-export function paraCentavos(v: FormDataEntryValue | null, max = 999999): number | null | undefined {
-  const s = String(v ?? '').replace(/R\$|\s/g, '');
-  if (!s) return null;
-  const n = Number(s.includes(',') ? s.replace(/\./g, '').replace(',', '.') : s);
-  const c = Math.round(n * 100);
-  return Number.isFinite(n) && c >= 0 && c <= max ? c : undefined;
-}
-export const doisDec = (c: number | null) => (c == null ? '' : (c / 100).toFixed(2).replace('.', ','));
