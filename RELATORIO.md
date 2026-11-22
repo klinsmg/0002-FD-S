@@ -331,7 +331,11 @@ Gerado em **`INVENTARIO.md`**:
 - `GOOGLE_MAPS_SERVER_KEY`: Routes API ok; **Geocoding API recusada pelo Google ("enable Billing")**. Ajuste: `lib/geo.ts`
   passa a geocodificar pela Routes API quando a Geocoding recusa (correspondência parcial só aceita se for o CEP, senão
   descarta; resultado marcado como aproximado se não for endereço exato). Teste: `tests/unit/geo.test.mjs` (5 casos).
-- `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY`: presente no build e carrega o mapa em mdogao.vercel.app, **mas também carrega em
-  example.com** → a restrição "Referenciadores HTTP" não está ativa no Google Cloud (pendente, feito pelo dono da conta).
+- `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY`: presente no build. **Correção:** o teste anterior ("carrega o mapa") só
+  detectava erro de autenticação; o console mostra `BillingNotEnabledMapError` em todos os sites, inclusive produção.
+  A restrição por site só pode ser verificada depois do faturamento ativo.
+- Após o ajuste das restrições (22/11, 18h): a Routes API também passou a recusar (403 PERMISSION_DENIED por 6 min
+  seguidos). Conclusão: **o projeto do Google Cloud está sem faturamento ativo**; nenhuma API do Maps funciona sem ele
+  (a resposta 200 da Routes no primeiro teste foi passageira).
 - ETA passa a ser **sem trânsito** (`TRAFFIC_UNAWARE`, faixa Essentials da Routes API, cota grátis maior que a Pro) e
   recalculado **no máximo a cada 2 min** por entrega (antes: com trânsito, a cada 45 s). Texto do mapa do cliente ajustado.
