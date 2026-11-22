@@ -103,7 +103,7 @@ export default function MapaRastreio({ pedido, inicial }: { pedido: string; inic
       </div>
       {!encerrada && !temPosicao && <p className="nota" role="status">Localização temporariamente indisponível. Assim que o sinal do entregador voltar, ela aparece aqui.</p>}
       {semMapa ? <p className="nota">Mapa indisponível no momento.</p> : <div ref={caixa} className="rastreio-mapa" role="img" aria-label="Mapa com a rota até o seu endereço e a posição aproximada do entregador" />}
-      {!encerrada && <p className="nota">A posição do entregador é aproximada (cerca de 100 m) e a previsão considera o trânsito.</p>}
+      {!encerrada && <p className="nota">A posição do entregador é aproximada (cerca de 100 m). A previsão é atualizada a cada 2 minutos e não considera o trânsito.</p>}
     </section>
   );
 }

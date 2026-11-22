@@ -61,7 +61,7 @@ async function geoPelaRota(endereco: string, k: string, completo: boolean) {
 
 type Ponto = { lat: number; lng: number };
 
-// Rota e ETA com trânsito (Routes API, chave de backend). A origem já chega arredondada (~100 m): a rota mostrada
+// Rota e ETA sem trânsito (Routes API faixa Essentials, cota grátis maior que a TRAFFIC_AWARE, que é Pro). A origem já chega arredondada (~100 m): a rota mostrada
 // ao cliente não revela a posição exata do entregador. Sem chave ou com falha: estimativa em linha reta
 // (x1,4 pelo traçado das ruas, a 25 km/h de média urbana) e sem desenho de rota.
 export async function rotaEta(origem: Ponto, destino: Ponto): Promise<{ minutos: number; km: number; polyline: string | null }> {
@@ -75,7 +75,7 @@ export async function rotaEta(origem: Ponto, destino: Ponto): Promise<{ minutos:
       body: JSON.stringify({
         origin: { location: { latLng: { latitude: origem.lat, longitude: origem.lng } } },
         destination: { location: { latLng: { latitude: destino.lat, longitude: destino.lng } } },
-        travelMode: 'DRIVE', routingPreference: 'TRAFFIC_AWARE', languageCode: 'pt-BR', regionCode: 'BR',
+        travelMode: 'DRIVE', routingPreference: 'TRAFFIC_UNAWARE', languageCode: 'pt-BR', regionCode: 'BR',
       }),
       signal: AbortSignal.timeout(6000), cache: 'no-store',
     });

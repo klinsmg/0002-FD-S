@@ -333,3 +333,5 @@ Gerado em **`INVENTARIO.md`**:
   descarta; resultado marcado como aproximado se não for endereço exato). Teste: `tests/unit/geo.test.mjs` (5 casos).
 - `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY`: presente no build e carrega o mapa em mdogao.vercel.app, **mas também carrega em
   example.com** → a restrição "Referenciadores HTTP" não está ativa no Google Cloud (pendente, feito pelo dono da conta).
+- ETA passa a ser **sem trânsito** (`TRAFFIC_UNAWARE`, faixa Essentials da Routes API, cota grátis maior que a Pro) e
+  recalculado **no máximo a cada 2 min** por entrega (antes: com trânsito, a cada 45 s). Texto do mapa do cliente ajustado.

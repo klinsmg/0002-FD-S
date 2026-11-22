@@ -40,12 +40,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     console.warn('[posicao] negado', { user: user.id.slice(0, 8), entrega: id.slice(0, 8) });
     return resp(403, 'not_assigned');
   }
-  // ETA no servidor, depois de responder ao app (não atrasa o envio): no máximo a cada 45 s por entrega.
+  // ETA no servidor, depois de responder ao app (não atrasa o envio): no máximo a cada 2 min por entrega (cota grátis da Routes API).
   // Origem arredondada (~100 m), igual à posição mostrada ao cliente.
   if (data === 'ok') {
     after(async () => {
       const { data: d } = await supabase.from('deliveries').select('dest_lat, dest_lng, eta_updated_at').eq('id', id).maybeSingle();
-      if (!d || (d.eta_updated_at && Date.now() - new Date(d.eta_updated_at).getTime() < 45_000)) return;
+      if (!d || (d.eta_updated_at && Date.now() - new Date(d.eta_updated_at).getTime() < 120_000)) return;
       const e = await rotaEta({ lat: aproximar(lat), lng: aproximar(lng) }, { lat: d.dest_lat, lng: d.dest_lng });
       await supabase.rpc('courier_set_eta', { p_delivery_id: id, p_eta_minutes: e.minutos, p_distance_km: e.km, p_polyline: e.polyline as string });
     });
