@@ -2,7 +2,7 @@ import { etaEstimada } from '@/lib/regras';
 
 // Chamadas ao Google Maps Platform feitas SÓ no servidor, com a chave de backend (GOOGLE_MAPS_SERVER_KEY).
 // Essa chave nunca vai ao navegador: não tem NEXT_PUBLIC_ e este arquivo só é importado por Server Actions/Route Handlers.
-// Restrinja-a no Google Cloud a "Geocoding API" e "Routes API" (ver .env.example).
+// Restrinja-a no Google Cloud a "Geocoding API" e "Routes API" (ver .env.example). Só a Routes já basta (reserva abaixo).
 const CHAVE = () => {
   const k = process.env.GOOGLE_MAPS_SERVER_KEY ?? '';
   return /^AIza[0-9A-Za-z_-]{35}$/.test(k) ? k : null;
@@ -21,18 +21,42 @@ export async function geocodificar(e: Endereco): Promise<{ lat: number; lng: num
     `${e.street ?? ''}, ${e.number ?? ''} - ${e.district ?? ''}, ${e.city ?? ''} - ${e.state ?? ''}, ${cep}, Brasil`,
     cep && `${cep}, Brasil`,
   ].filter(Boolean) as string[];
+  let reserva = false; // Geocoding API recusou (faturamento/API desligada): usa a Routes API, que também geocodifica
   for (const [i, endereco] of tentativas.entries()) {
     try {
-      const url = `https://maps.googleapis.com/maps/api/geocode/json?region=br&language=pt-BR&address=${encodeURIComponent(endereco)}&key=${k}`;
-      const r = await fetch(url, { signal: AbortSignal.timeout(6000), cache: 'no-store' });
-      const j = await r.json();
-      const geo = j?.results?.[0]?.geometry, loc = geo?.location;
-      const preciso = i === 0 && ['ROOFTOP', 'RANGE_INTERPOLATED'].includes(geo?.location_type);
-      if (j.status === 'OK' && Number.isFinite(loc?.lat) && Number.isFinite(loc?.lng)) return { lat: loc.lat, lng: loc.lng, aprox: !preciso };
-      if (j.status !== 'ZERO_RESULTS') { console.error('[geo] geocode', j.status, j.error_message ?? ''); return null; }
+      if (!reserva) {
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?region=br&language=pt-BR&address=${encodeURIComponent(endereco)}&key=${k}`;
+        const j = await (await fetch(url, { signal: AbortSignal.timeout(6000), cache: 'no-store' })).json();
+        const geo = j?.results?.[0]?.geometry, loc = geo?.location;
+        const preciso = i === 0 && ['ROOFTOP', 'RANGE_INTERPOLATED'].includes(geo?.location_type);
+        if (j.status === 'OK' && Number.isFinite(loc?.lat) && Number.isFinite(loc?.lng)) return { lat: loc.lat, lng: loc.lng, aprox: !preciso };
+        if (j.status === 'ZERO_RESULTS') continue;
+        console.error('[geo] geocode', j.status, j.error_message ?? '', '-> usando Routes API');
+        reserva = true;
+      }
+      const r = await geoPelaRota(endereco, k, i === 0);
+      if (r) return r;
     } catch (err) { console.error('[geo] geocode falhou', String(err)); return null; }
   }
   return null;
+}
+
+// Routes API com o mesmo endereço na origem e no destino: devolve o ponto e o tipo do que o Google achou.
+// Correspondência parcial só é aceita se for o CEP (senão o Google "acha" uma rua com nome parecido em outro estado).
+async function geoPelaRota(endereco: string, k: string, completo: boolean) {
+  const r = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'X-Goog-Api-Key': k, 'X-Goog-FieldMask': 'routes.legs.endLocation,geocodingResults' },
+    body: JSON.stringify({ origin: { address: endereco }, destination: { address: endereco }, travelMode: 'DRIVE', regionCode: 'BR', languageCode: 'pt-BR' }),
+    signal: AbortSignal.timeout(6000), cache: 'no-store',
+  });
+  const j = await r.json();
+  const ll = j?.routes?.[0]?.legs?.[0]?.endLocation?.latLng, g = j?.geocodingResults?.destination;
+  const tipos: string[] = g?.type ?? [];
+  if (!r.ok || !Number.isFinite(ll?.latitude) || !Number.isFinite(ll?.longitude)) { if (!r.ok) console.error('[geo] rota-geocode', r.status, j?.error?.message ?? ''); return null; }
+  if (g?.partialMatch && !tipos.includes('postal_code')) return null;
+  const preciso = completo && !g?.partialMatch && tipos.some(t => ['street_address', 'premise', 'subpremise'].includes(t));
+  return { lat: ll.latitude, lng: ll.longitude, aprox: !preciso };
 }
 
 type Ponto = { lat: number; lng: number };

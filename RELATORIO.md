@@ -325,3 +325,11 @@ Gerado em **`INVENTARIO.md`**:
 | `npm audit` | 1 moderada | **0** |
 | INP do cardápio (celular) | 5.600 ms | **24 ms** |
 | JS por página | 219 KB | **174 KB** |
+
+## Pós-entrega (22/11/2026): verificação das chaves em produção
+- `SUPABASE_SERVICE_ROLE_KEY`: ok (banco aceita a chamada exclusiva do servidor); nenhum segredo nos JS servidos.
+- `GOOGLE_MAPS_SERVER_KEY`: Routes API ok; **Geocoding API recusada pelo Google ("enable Billing")**. Ajuste: `lib/geo.ts`
+  passa a geocodificar pela Routes API quando a Geocoding recusa (correspondência parcial só aceita se for o CEP, senão
+  descarta; resultado marcado como aproximado se não for endereço exato). Teste: `tests/unit/geo.test.mjs` (5 casos).
+- `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY`: presente no build e carrega o mapa em mdogao.vercel.app, **mas também carrega em
+  example.com** → a restrição "Referenciadores HTTP" não está ativa no Google Cloud (pendente, feito pelo dono da conta).
