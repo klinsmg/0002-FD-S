@@ -417,6 +417,7 @@ Riscos aceitos/pendentes:
 - **OSRM/Nominatim/PMTiles com dados reais**: o extrato do Brasil tem ~2 GB e a importação do Nominatim leva horas; os
   provedores foram testados com respostas no formato real e o Nginx num container local. Testar no VPS ao subir.
 - **Telas logadas no navegador** (mapa do pedido, pino, Admin → Mapas): sem contas de teste, como antes.
-- **Migrações 020/021 NÃO aplicadas em produção**: o login do Supabase CLI expirou ("Invalid access token").
-  **Não publique este código antes de aplicá-las**: o despacho e o checkout novo leem colunas que só existem nelas.
+- **Migrações 020/021 aplicadas em produção em 23/11/2026**, depois do backup completo (esquema + dados em
+  `supabase/backups/20261123-141918-pre020-*.sql`). Os 9 pedidos existentes ficaram ligados à loja padrão; os tipos
+  (`lib/database.types.ts`) foram regenerados do banco; o Security Advisor não aponta nada novo de nível ERROR.
 

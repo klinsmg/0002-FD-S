@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.18"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       access_attempts: {
@@ -216,8 +241,6 @@ export type Database = {
       }
       deliveries: {
         Row: {
-          route_provider: string | null
-          last_speed_kmh: number | null
           confirm_accuracy_m: number | null
           confirm_distance_m: number | null
           confirm_lat: number | null
@@ -236,15 +259,15 @@ export type Database = {
           last_captured_at: string | null
           last_lat: number | null
           last_lng: number | null
+          last_speed_kmh: number | null
           order_id: string
           route_polyline: string | null
+          route_provider: string | null
           started_at: string | null
           status: string
           updated_at: string
         }
         Insert: {
-          route_provider?: string | null
-          last_speed_kmh?: number | null
           confirm_accuracy_m?: number | null
           confirm_distance_m?: number | null
           confirm_lat?: number | null
@@ -263,15 +286,15 @@ export type Database = {
           last_captured_at?: string | null
           last_lat?: number | null
           last_lng?: number | null
+          last_speed_kmh?: number | null
           order_id: string
           route_polyline?: string | null
+          route_provider?: string | null
           started_at?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
-          route_provider?: string | null
-          last_speed_kmh?: number | null
           confirm_accuracy_m?: number | null
           confirm_distance_m?: number | null
           confirm_lat?: number | null
@@ -290,8 +313,10 @@ export type Database = {
           last_captured_at?: string | null
           last_lat?: number | null
           last_lng?: number | null
+          last_speed_kmh?: number | null
           order_id?: string
           route_polyline?: string | null
+          route_provider?: string | null
           started_at?: string | null
           status?: string
           updated_at?: string
@@ -450,7 +475,29 @@ export type Database = {
           sku?: string | null
           status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "google_api_calls_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_api_calls_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_api_calls_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       google_api_usage: {
         Row: {
@@ -631,15 +678,14 @@ export type Database = {
       }
       orders: {
         Row: {
-          restaurant_id: string | null
-          dest_lat: number | null
-          dest_lng: number | null
-          dest_source: string | null
           created_at: string
           customer_name: string
           customer_phone: string | null
           delivery_address: Json | null
           delivery_fee_cents: number
+          dest_lat: number | null
+          dest_lng: number | null
+          dest_source: string | null
           discount_cents: number
           has_price_pending: boolean
           id: string
@@ -647,6 +693,7 @@ export type Database = {
           order_number: number
           order_type: string
           payment_method: string | null
+          restaurant_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal_cents: number
           total_cents: number
@@ -654,15 +701,14 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          restaurant_id?: string | null
-          dest_lat?: number | null
-          dest_lng?: number | null
-          dest_source?: string | null
           created_at?: string
           customer_name: string
           customer_phone?: string | null
           delivery_address?: Json | null
           delivery_fee_cents?: number
+          dest_lat?: number | null
+          dest_lng?: number | null
+          dest_source?: string | null
           discount_cents?: number
           has_price_pending?: boolean
           id?: string
@@ -670,6 +716,7 @@ export type Database = {
           order_number?: never
           order_type: string
           payment_method?: string | null
+          restaurant_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal_cents?: number
           total_cents?: number
@@ -677,15 +724,14 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          restaurant_id?: string | null
-          dest_lat?: number | null
-          dest_lng?: number | null
-          dest_source?: string | null
           created_at?: string
           customer_name?: string
           customer_phone?: string | null
           delivery_address?: Json | null
           delivery_fee_cents?: number
+          dest_lat?: number | null
+          dest_lng?: number | null
+          dest_source?: string | null
           discount_cents?: number
           has_price_pending?: boolean
           id?: string
@@ -693,13 +739,22 @@ export type Database = {
           order_number?: never
           order_type?: string
           payment_method?: string | null
+          restaurant_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal_cents?: number
           total_cents?: number
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product_variants: {
         Row: {
@@ -832,7 +887,15 @@ export type Database = {
           restaurant_id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_members_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       restaurants: {
         Row: {
@@ -1123,6 +1186,9 @@ export type Database = {
           customer_phone: string | null
           delivery_address: Json | null
           delivery_fee_cents: number
+          dest_lat: number | null
+          dest_lng: number | null
+          dest_source: string | null
           discount_cents: number
           has_price_pending: boolean
           id: string
@@ -1130,6 +1196,7 @@ export type Database = {
           order_number: number
           order_type: string
           payment_method: string | null
+          restaurant_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal_cents: number
           total_cents: number
@@ -1201,6 +1268,7 @@ export type Database = {
           r_total_cents: number
         }[]
       }
+      default_restaurant: { Args: never; Returns: string }
       dispatch_order: {
         Args: {
           p_courier_id: string
@@ -1215,11 +1283,46 @@ export type Database = {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
       }
+      google_alert: {
+        Args: { p_cap: number; p_period: string; p_sku: string; p_used: number }
+        Returns: undefined
+      }
+      google_consolidate: {
+        Args: never
+        Returns: {
+          free_cap: number
+          pct: number
+          sku: string
+          used_events: number
+        }[]
+      }
+      google_period_start: { Args: { p_at?: string }; Returns: string }
+      google_reserve: {
+        Args: { p_cap: number; p_sku: string; p_soft_pct?: number }
+        Returns: string
+      }
       is_admin: { Args: never; Returns: boolean }
       is_courier: { Args: never; Returns: boolean }
+      is_order_restaurant_member: {
+        Args: { p_order_id: string }
+        Returns: boolean
+      }
+      is_restaurant_member: {
+        Args: { p_restaurant_id: string }
+        Returns: boolean
+      }
       log_denied: {
         Args: { p_device: string; p_ip: string; p_user: string }
         Returns: undefined
+      }
+      order_set_destination: {
+        Args: {
+          p_lat: number
+          p_lng: number
+          p_order_id: string
+          p_source: string
+        }
+        Returns: string
       }
       order_status_ok: {
         Args: {
@@ -1229,21 +1332,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      default_restaurant: { Args: never; Returns: string }
-      google_consolidate: {
-        Args: never
-        Returns: { free_cap: number; pct: number; sku: string; used_events: number }[]
-      }
-      google_reserve: {
-        Args: { p_cap: number; p_sku: string; p_soft_pct?: number }
-        Returns: string
-      }
-      is_order_restaurant_member: { Args: { p_order_id: string }; Returns: boolean }
-      is_restaurant_member: { Args: { p_restaurant_id: string }; Returns: boolean }
-      order_set_destination: {
-        Args: { p_lat: number; p_lng: number; p_order_id: string; p_source: string }
-        Returns: string
-      }
       order_tracking: {
         Args: { p_order_id: string }
         Returns: {
@@ -1251,16 +1339,16 @@ export type Database = {
           dest_lng: number
           distance_km: number
           eta_minutes: number
+          eta_updated_at: string
           lat: number
           lng: number
-          route_polyline: string
-          status: string
-          updated_at: string
           restaurant_lat: number
           restaurant_lng: number
+          route_polyline: string
           route_provider: string
-          eta_updated_at: string
           speed_kmh: number
+          status: string
+          updated_at: string
         }[]
       }
       purge_delivery_positions: { Args: never; Returns: number }
@@ -1415,6 +1503,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["customer", "admin"],
