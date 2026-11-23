@@ -36,7 +36,7 @@ export default function AoVivo({ topico, reserva = 30, alertaNovo = false, selo 
     const canal = rt.channel(topico, { config: { private: true } });
     canal
       .on('broadcast', { event: '*' }, ({ event, payload }) => {
-        // posição/ETA do entregador: vai direto para o mapa (MapaRastreio), sem redesenhar a página a cada 7 s
+        // posição/ETA do entregador: vai direto para o mapa (MapaRastreio), sem redesenhar a página a cada 15 s
         window.dispatchEvent(new CustomEvent('aovivo', { detail: { topico, event, payload } }));
         if (event === 'rastreio') return;
         if (alertaNovo && payload?.evento === 'novo' && rotaRef.current !== '/admin/loja') setNovos(n => [...n, Number(payload.numero)]);

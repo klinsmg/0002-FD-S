@@ -5,7 +5,8 @@ import { reais } from '@/lib/conta';
 import SocialLoginButtons from '@/components/SocialLoginButtons';
 import Recarregar from '@/components/Recarregar';
 
-export const metadata = { title: 'Entregador', robots: { index: false, follow: false } };
+// PWA do entregador (instalável, mobile-first): manifesto com escopo /entregador
+export const metadata = { title: 'Entregador', robots: { index: false, follow: false }, manifest: '/entregador.webmanifest' };
 
 // App do entregador (no navegador do celular). Entra com Google; o admin libera a conta em Configurações > Entregadores.
 export default async function Entregador() {

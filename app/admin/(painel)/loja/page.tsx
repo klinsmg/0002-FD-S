@@ -21,12 +21,12 @@ const ACAO: Partial<Record<Status, string>> = { preparing: 'Começar preparo', r
 const MSG: Record<string, string> = {
   fluxo: 'Esse pedido já mudou de etapa (outro aparelho?). O quadro foi atualizado.', invalido: 'Ação inválida.',
   entregador: 'Escolha um entregador ativo para o pedido sair.',
-  endereco: 'Não encontramos o endereço do pedido no mapa. Confira o endereço com o cliente (Detalhes) e tente de novo.',
-  chave: 'Falta a chave de backend do Google (GOOGLE_MAPS_SERVER_KEY) para localizar o endereço. Veja .env.example.',
+  endereco: 'Não encontramos o endereço do pedido no mapa. Abra "Sem ponto no mapa?" no cartão e cole as coordenadas da casa (ex.: -23.5367, -46.9342).',
+  coords: 'Coordenadas inválidas ou longe da loja (mais de 50 km). Use o formato -23.5367, -46.9342.',
 };
 const ETAPA: Record<string, string> = { assigned: 'saindo', en_route: 'a caminho', arriving: 'chegando', arrived: 'no local' };
 
-const CAMPOS = 'id, order_number, created_at, customer_name, customer_phone, order_type, status, notes, delivery_address, payment_method, total_cents, has_price_pending, order_items(id, quantity, product_name, variant_label, doneness, notes, order_item_extras(name, quantity))';
+const CAMPOS = 'id, order_number, created_at, customer_name, customer_phone, order_type, status, notes, delivery_address, dest_source, payment_method, total_cents, has_price_pending, order_items(id, quantity, product_name, variant_label, doneness, notes, order_item_extras(name, quantity))';
 const hora = (d: string) => new Date(d).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
 const minutos = (d: string) => Math.max(0, Math.round((Date.now() - new Date(d).getTime()) / 60000));
 
@@ -104,6 +104,13 @@ export default async function Loja({ searchParams }: { searchParams: Promise<{ e
                               {ativos.map(c => <option key={c.user_id} value={c.user_id}>{c.name || c.email}{Number(c.open_deliveries) ? ` (${c.open_deliveries} em rota)` : ''}</option>)}
                             </select>
                             <BotaoEnviar pendente="Localizando endereço…" className="btn btn-p">Saiu para entrega</BotaoEnviar>
+                            {p.dest_source ? <p className="ped-st">Ponto no mapa: {p.dest_source === 'pino' ? 'confirmado pelo cliente' : 'sugerido pelo endereço'}.</p> : (
+                              <details className="ped-coords">
+                                <summary>Sem ponto no mapa?</summary>
+                                <label htmlFor={`co-${p.id}`}>Coordenadas da casa (opcional)</label>
+                                <input id={`co-${p.id}`} name="coords" inputMode="decimal" maxLength={40} placeholder="-23.5367, -46.9342" autoComplete="off" />
+                              </details>
+                            )}
                           </form>
                         ) : <p className="ped-st">Nenhum entregador liberado. <Link href="/admin/configuracoes#entregadores">Liberar em Configurações</Link>.</p>)}
                         {avancar.map(s => (

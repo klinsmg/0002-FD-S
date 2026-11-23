@@ -10,7 +10,7 @@ type Estado = 'aviso' | 'pedindo' | 'ativo' | 'negado' | 'indisponivel' | 'encer
 
 const CONSENTIMENTO = 'gps-aviso-v1';
 const FILA = (id: string) => `gps-fila-${id}`;
-const MOVENDO_S = 7, PARADO_S = 25;   // intervalo de envio: em movimento / parado
+const MOVENDO_S = 15, PARADO_S = 15;  // GPS a cada 15 s (barato: o servidor só grava e publica; rota só por gatilho)
 const VALIDADE_MS = 110_000;          // o servidor descarta posição com mais de 2 min
 
 // distância só para mostrar; quem decide é o servidor
@@ -18,7 +18,7 @@ const distancia = distanciaM;
 const lerFila = (id: string): Pos[] => { try { return JSON.parse(localStorage.getItem(FILA(id)) || '[]'); } catch { return []; } };
 const gravarFila = (id: string, f: Pos[]) => { try { localStorage.setItem(FILA(id), JSON.stringify(f.slice(-30))); } catch {} };
 
-// GPS do entregador: aviso LGPD -> watchPosition -> envia a cada 7 s em movimento / 25 s parado, com fila local para
+// GPS do entregador: aviso LGPD -> watchPosition -> envia a cada 15 s, com fila local para
 // reenviar quando a internet volta. "Entregue" só libera perto do endereço e com GPS preciso; o servidor confere de novo.
 export default function Rastreador({ id, destino, raio, precisaoMax, iniciada }: { id: string; destino: { lat: number; lng: number }; raio: number; precisaoMax: number; iniciada: boolean }) {
   const router = useRouter();
@@ -102,7 +102,7 @@ export default function Rastreador({ id, destino, raio, precisaoMax, iniciada }:
     return () => { parar(); window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // relógio de envio: em movimento a cada 7 s, parado a cada 25 s
+  // relógio de envio: a cada 15 s
   useEffect(() => {
     if (estado !== 'ativo') return;
     const t = setInterval(() => {

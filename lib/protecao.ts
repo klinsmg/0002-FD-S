@@ -2,7 +2,7 @@ import { cookies, headers } from 'next/headers';
 import { usuarioAtual } from '@/lib/supabase/server';
 import { clienteServico, ipLog } from '@/lib/supabase/servico';
 
-// Limite de tentativas nos pontos sensíveis (criar pedido, login do painel, código 2FA).
+// Limite de tentativas nos pontos sensíveis (criar pedido, login do painel, código 2FA, GPS e mapas).
 // Chaves: usuário logado + IP + dispositivo. IP sozinho não basta (Wi-Fi/4G compartilhado), por isso o teto por IP é
 // maior. Dispositivo = um ID aleatório nosso em cookie httpOnly (sem fingerprinting); apagar o cookie só zera essa chave.
 // Regras, bloqueio de 15 min e registro: função access_check (migrações 014 e 019). Só o servidor chama a função
@@ -17,7 +17,7 @@ export async function ipDaRequisicao() {
   return (h.get('x-real-ip') ?? h.get('x-forwarded-for')?.split(',')[0] ?? '').trim().slice(0, 64) || null;
 }
 
-export async function permitir(acao: 'pedido' | 'login_admin' | 'codigo_2fa'): Promise<boolean> {
+export async function permitir(acao: 'pedido' | 'login_admin' | 'codigo_2fa' | 'gps' | 'mapas'): Promise<boolean> {
   const ip = await ipDaRequisicao();
   const jar = await cookies();
   let disp = jar.get(COOKIE_DISP)?.value ?? '';

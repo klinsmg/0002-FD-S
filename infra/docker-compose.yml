@@ -1,0 +1,69 @@
+# Mapas, rotas e endereços self-hosted do MDogão (VPS próprio). Ver infra/README.md.
+#   osrm      : rotas, ETA e map matching (OSRM, perfil carro) — interno, só pelo Nginx com X-Mapas-Token
+#   nominatim : endereço -> coordenadas (dados OpenStreetMap da região) — interno, idem
+#   nginx     : HTTPS (Let's Encrypt), /tiles/ público (PMTiles com Range + CORS só do site), /osrm/ e /nominatim/ com token
+#   certbot   : renova o certificado a cada 12 h (só se faltar < 30 dias)
+# Dados (infra/dados/): gerados por scripts/preparar-dados.sh (regiao.osm.pbf, regiao.osrm*, regiao.pmtiles).
+name: mdogao-mapas
+
+services:
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:v5.27.1
+    command: osrm-routed --algorithm mld --max-matching-size 20 --max-table-size 10 /dados/regiao.osrm
+    volumes: [./dados:/dados:ro]
+    restart: unless-stopped
+    read_only: true
+    security_opt: [no-new-privileges:true]
+    mem_limit: 2g
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs 'http://localhost:5000/route/v1/driving/-46.93,-23.53;-46.92,-23.54?overview=false' >/dev/null || exit 1"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+
+  nominatim:
+    image: mediagis/nominatim:4.5
+    environment:
+      PBF_PATH: /dados/regiao.osm.pbf
+      REPLICATION_URL: ""            # sem atualização automática (refaça a importação mensalmente; ver README)
+      IMPORT_STYLE: address          # só o necessário para endereços (importação menor e mais rápida)
+      IMPORT_WIKIPEDIA: "false"
+      NOMINATIM_PASSWORD: ${NOMINATIM_DB_PASSWORD:?defina NOMINATIM_DB_PASSWORD em infra/.env}
+      THREADS: "2"
+    volumes:
+      - ./dados:/dados:ro
+      - nominatim-db:/var/lib/postgresql/16/main
+    shm_size: 1g
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    mem_limit: 4g
+
+  nginx:
+    image: nginx:1.27.5-alpine
+    depends_on: [osrm, nominatim]
+    ports: ["80:80", "443:443"]
+    environment:
+      MAPAS_DOMINIO: ${MAPAS_DOMINIO:?defina MAPAS_DOMINIO em infra/.env}
+      MAPAS_TOKEN: ${MAPAS_TOKEN:?defina MAPAS_TOKEN em infra/.env}
+      SITE_ORIGEM: ${SITE_ORIGEM:?defina SITE_ORIGEM em infra/.env}
+      NGINX_ENVSUBST_FILTER: "^(MAPAS_|SITE_)"
+    volumes:
+      - ./nginx/templates:/etc/nginx/templates:ro
+      - ./dados:/srv/tiles:ro
+      - certs:/etc/letsencrypt:ro
+      - acme:/var/www/acme:ro
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+
+  certbot:
+    image: certbot/certbot:v3.0.1
+    entrypoint: ["/bin/sh", "-c", "trap exit TERM; while :; do certbot renew --webroot -w /var/www/acme --quiet; sleep 12h & wait $${!}; done"]
+    volumes:
+      - certs:/etc/letsencrypt
+      - acme:/var/www/acme
+    restart: unless-stopped
+
+volumes:
+  nominatim-db:
+  certs:
+  acme:

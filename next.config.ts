@@ -8,17 +8,21 @@ const supabase = (() => {
   try { const u = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''); return u.protocol === 'https:' && u.hostname.endsWith('.supabase.co') ? u.origin : ''; } catch { return ''; }
 })();
 
-// Mapa ao vivo do pedido (Maps JavaScript API): domínios da lista oficial de CSP do Google Maps Platform.
-const GMAPS = 'https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.ggpht.com https://*.googleusercontent.com';
+// Mapas self-hosted (VPS): a origem de MAPAS_URL/MAPAS_TILES_URL entra em connect-src (o navegador baixa os PMTiles por
+// HTTP Range). Só https válido. Os tiles do Google, quando ligados, passam pelo NOSSO proxy (mesma origem): nenhum domínio
+// do Google em script/img/connect.
+// (http só para localhost: teste local com o docker compose de infra/)
+const origem = (v?: string) => { try { const u = new URL(v ?? ''); return u.protocol === 'https:' || (u.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(u.hostname)) ? u.origin : ''; } catch { return ''; } };
+const mapas = [...new Set([origem(process.env.MAPAS_URL), origem(process.env.MAPAS_TILES_URL)].filter(Boolean))].join(' ');
 
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${GMAPS}`,
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  `img-src 'self' data: blob: ${GMAPS}`,
+  "img-src 'self' data: blob:",
   "media-src 'self'",
   "font-src 'self' data: https://fonts.gstatic.com",
-  `connect-src 'self' https://viacep.com.br${supabase ? ` ${supabase}` : ''} ${GMAPS} data: blob:`,
+  `connect-src 'self' https://viacep.com.br${supabase ? ` ${supabase}` : ''}${mapas ? ` ${mapas}` : ''} data: blob:`,
   "frame-src https://www.google.com",
   "worker-src blob:",
   "manifest-src 'self'",

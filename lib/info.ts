@@ -16,11 +16,14 @@ export const info = {
 export const wa = (msg = 'Olá! Vim pelo site do MDogão Itapevi.') => `https://wa.me/${info.wa}?text=${encodeURIComponent(msg)}`;
 export const mapa = `https://www.google.com/maps?q=${encodeURIComponent(`${info.rua}, ${info.bairro}`)}`;
 
-// Google (GOOGLE_MAPS_API_KEY e GOOGLE_PLACE_ID em .env.local / Vercel). Lidas só no servidor (mapa e convite são montados
+// Google (GOOGLE_MAPS_EMBED_KEY e GOOGLE_PLACE_ID em .env.local / Vercel). Lidas só no servidor (mapa e convite são montados
 // no servidor). Validadas: só letras, números, _ e - (nada vai cru para a URL).
 const env = (v?: string) => (v ?? '').trim();
 const placeId = /^[A-Za-z0-9_-]{10,300}$/.test(env(process.env.GOOGLE_PLACE_ID)) ? env(process.env.GOOGLE_PLACE_ID) : '';
-const chaveMapa = /^[A-Za-z0-9_-]{20,100}$/.test(env(process.env.GOOGLE_MAPS_API_KEY)) ? env(process.env.GOOGLE_MAPS_API_KEY) : '';
+// Chave do Embed (pública, vai no HTML): GOOGLE_MAPS_EMBED_KEY. O nome antigo GOOGLE_MAPS_API_KEY só vale enquanto o
+// Google do rastreamento estiver desligado: ligado, GOOGLE_MAPS_API_KEY é a chave SECRETA do servidor e nunca vai ao HTML.
+const embed = env(process.env.GOOGLE_MAPS_EMBED_KEY) || (env(process.env.GOOGLE_MAPS_ENABLED) === 'true' ? '' : env(process.env.GOOGLE_MAPS_API_KEY));
+const chaveMapa = /^[A-Za-z0-9_-]{20,100}$/.test(embed) ? embed : '';
 // Link oficial para o cliente escrever a avaliação no Google (vazio sem Place ID: o botão não aparece)
 export const avaliarNoGoogle = placeId ? `https://search.google.com/local/writereview?placeid=${placeId}` : '';
 // Mapa: Maps Embed API com o Place ID (ou o endereço); sem chave, o mapa simples de antes

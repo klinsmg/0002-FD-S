@@ -5,7 +5,7 @@ import { PAGAMENTO, enderecoTexto } from '@/lib/admin';
 import { PONTO, reais } from '@/lib/conta';
 import Rastreador from '@/components/Rastreador';
 
-export const metadata = { title: 'Entrega', robots: { index: false, follow: false } };
+export const metadata = { title: 'Entrega', robots: { index: false, follow: false }, manifest: '/entregador.webmanifest' };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function Entrega({ params }: { params: Promise<{ id: string }> }) {

@@ -3,7 +3,9 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { PAGAMENTO, STATUS_LISTA, exigirAdmin, paraCentavos, podeIr, type Status } from '@/lib/admin';
 import { limpa } from '@/lib/conta';
-import { geocodificar, temChaveServidor } from '@/lib/geo';
+import { after } from 'next/server';
+import { despachar } from '@/lib/despacho';
+import { dadosRestaurante } from '@/lib/api';
 import { PAGINAS_COM_HORARIO } from '@/lib/horarios';
 
 // Mutações do painel. Todas começam por exigirAdmin() e usam o cliente do USUÁRIO (RLS), nunca a service role.
@@ -142,18 +144,14 @@ export async function excluirProduto(f: FormData) {
 }
 
 // ---------- entregas ----------
-// "Saiu para entrega": geocodifica o endereço no servidor (chave de backend) e despacha para o entregador escolhido.
+// "Saiu para entrega": ponto do pedido (pino do cliente) -> Nominatim -> coordenadas coladas pela loja. Regras em lib/despacho.ts.
 export async function despacharPedido(f: FormData) {
   const { supabase } = await exigirAdmin();
   const id = idDe(f), entregador = idDe(f, 'entregador');
   if (!id || !entregador) redirect('/admin/loja?erro=entregador');
-  const { data: p } = await supabase.from('orders').select('status, order_type, delivery_address').eq('id', id).maybeSingle();
-  if (!p || p.status !== 'ready' || p.order_type !== 'delivery') redirect('/admin/loja?erro=fluxo');
-  if (!temChaveServidor()) redirect('/admin/loja?erro=chave');
-  const destino = await geocodificar((p.delivery_address ?? {}) as Record<string, string>);
-  if (!destino) redirect('/admin/loja?erro=endereco');
-  const { error } = await supabase.rpc('dispatch_order', { p_order_id: id, p_courier_id: entregador, p_dest_lat: destino.lat, p_dest_lng: destino.lng, p_dest_approx: destino.aprox });
-  if (error) redirect(`/admin/loja?erro=${error.message.includes('courier_not_found') ? 'entregador' : 'fluxo'}`);
+  const r = await despachar(supabase, id, entregador, String(f.get('coords') ?? ''));
+  if (!r.ok) redirect(`/admin/loja?erro=${r.erro}`);
+  after(r.rotaInicial);
   atualizar('/admin', '/admin/loja', '/admin/pedidos', `/admin/pedidos/${id}`, `/pedido/${id}`, '/entregador');
   redirect('/admin/loja');
 }
@@ -210,4 +208,19 @@ export async function limparGpsAntigo() {
   const { data } = await supabase.rpc('purge_delivery_positions');
   atualizar('/admin/auditoria');
   redirect(`/admin/auditoria?ok=${Number(data ?? 0)}#privacidade`);
+}
+
+// ---------- mapas: restaurante (ponto da loja e regras do Google) ----------
+export async function salvarRestaurante(f: FormData) {
+  const { supabase } = await exigirAdmin();
+  const id = idDe(f);
+  const d = dadosRestaurante({
+    name: f.get('name'), lat: String(f.get('lat') ?? '').trim(), lng: String(f.get('lng') ?? '').trim(),
+    google_maps_enabled: f.get('google') === 'on', plan: f.get('plan'), google_maps_percent: String(f.get('percent') ?? ''),
+  });
+  if (!id || !d) redirect('/admin/mapas?erro=restaurante#loja');
+  const { error } = await supabase.from('restaurants').update(d).eq('id', id);
+  if (error) redirect('/admin/mapas?erro=falha#loja');
+  atualizar('/admin/mapas');
+  redirect('/admin/mapas?ok=loja#loja');
 }

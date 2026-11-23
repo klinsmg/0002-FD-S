@@ -216,6 +216,8 @@ export type Database = {
       }
       deliveries: {
         Row: {
+          route_provider: string | null
+          last_speed_kmh: number | null
           confirm_accuracy_m: number | null
           confirm_distance_m: number | null
           confirm_lat: number | null
@@ -241,6 +243,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          route_provider?: string | null
+          last_speed_kmh?: number | null
           confirm_accuracy_m?: number | null
           confirm_distance_m?: number | null
           confirm_lat?: number | null
@@ -266,6 +270,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          route_provider?: string | null
+          last_speed_kmh?: number | null
           confirm_accuracy_m?: number | null
           confirm_distance_m?: number | null
           confirm_lat?: number | null
@@ -371,6 +377,111 @@ export type Database = {
           sort_order?: number
           type?: Database["public"]["Enums"]["extra_type"]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      google_api_alerts: {
+        Row: {
+          created_at: string
+          free_cap: number
+          level: number
+          period_start: string
+          sku: string
+          used_events: number
+        }
+        Insert: {
+          created_at?: string
+          free_cap: number
+          level: number
+          period_start: string
+          sku: string
+          used_events: number
+        }
+        Update: {
+          created_at?: string
+          free_cap?: number
+          level?: number
+          period_start?: string
+          sku?: string
+          used_events?: number
+        }
+        Relationships: []
+      }
+      google_api_calls: {
+        Row: {
+          cost_estimate: number
+          courier_id: string | null
+          created_at: string
+          delivery_id: string | null
+          endpoint: string
+          id: number
+          latency_ms: number | null
+          order_id: string | null
+          provider: string
+          restaurant_id: string | null
+          sku: string | null
+          status: string
+        }
+        Insert: {
+          cost_estimate?: number
+          courier_id?: string | null
+          created_at?: string
+          delivery_id?: string | null
+          endpoint: string
+          id?: number
+          latency_ms?: number | null
+          order_id?: string | null
+          provider: string
+          restaurant_id?: string | null
+          sku?: string | null
+          status: string
+        }
+        Update: {
+          cost_estimate?: number
+          courier_id?: string | null
+          created_at?: string
+          delivery_id?: string | null
+          endpoint?: string
+          id?: number
+          latency_ms?: number | null
+          order_id?: string | null
+          provider?: string
+          restaurant_id?: string | null
+          sku?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      google_api_usage: {
+        Row: {
+          created_at: string
+          free_cap: number
+          id: number
+          period_end: string
+          period_start: string
+          sku: string
+          updated_at: string
+          used_events: number
+        }
+        Insert: {
+          created_at?: string
+          free_cap: number
+          id?: number
+          period_end: string
+          period_start: string
+          sku: string
+          updated_at?: string
+          used_events?: number
+        }
+        Update: {
+          created_at?: string
+          free_cap?: number
+          id?: number
+          period_end?: string
+          period_start?: string
+          sku?: string
+          updated_at?: string
+          used_events?: number
         }
         Relationships: []
       }
@@ -520,6 +631,10 @@ export type Database = {
       }
       orders: {
         Row: {
+          restaurant_id: string | null
+          dest_lat: number | null
+          dest_lng: number | null
+          dest_source: string | null
           created_at: string
           customer_name: string
           customer_phone: string | null
@@ -539,6 +654,10 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          restaurant_id?: string | null
+          dest_lat?: number | null
+          dest_lng?: number | null
+          dest_source?: string | null
           created_at?: string
           customer_name: string
           customer_phone?: string | null
@@ -558,6 +677,10 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          restaurant_id?: string | null
+          dest_lat?: number | null
+          dest_lng?: number | null
+          dest_source?: string | null
           created_at?: string
           customer_name?: string
           customer_phone?: string | null
@@ -693,6 +816,63 @@ export type Database = {
         }
         Relationships: []
       }
+      restaurant_members: {
+        Row: {
+          created_at: string
+          restaurant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          restaurant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          restaurant_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      restaurants: {
+        Row: {
+          active: boolean
+          created_at: string
+          google_maps_enabled: boolean
+          google_maps_percent: number
+          id: string
+          lat: number | null
+          lng: number | null
+          name: string
+          plan: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          google_maps_enabled?: boolean
+          google_maps_percent?: number
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name: string
+          plan?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          google_maps_enabled?: boolean
+          google_maps_percent?: number
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name?: string
+          plan?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       review_prompts: {
         Row: {
           created_at: string
@@ -762,6 +942,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      route_cache: {
+        Row: {
+          created_at: string
+          distance_m: number
+          duration_s: number
+          expires_at: string
+          key: string
+          polyline: string | null
+          provider: string
+        }
+        Insert: {
+          created_at?: string
+          distance_m: number
+          duration_s: number
+          expires_at: string
+          key: string
+          polyline?: string | null
+          provider: string
+        }
+        Update: {
+          created_at?: string
+          distance_m?: number
+          duration_s?: number
+          expires_at?: string
+          key?: string
+          polyline?: string | null
+          provider?: string
+        }
+        Relationships: []
       }
       sections: {
         Row: {
@@ -965,6 +1175,7 @@ export type Database = {
           p_distance_km: number
           p_eta_minutes: number
           p_polyline: string
+          p_provider?: string
         }
         Returns: undefined
       }
@@ -1018,6 +1229,21 @@ export type Database = {
         }
         Returns: boolean
       }
+      default_restaurant: { Args: never; Returns: string }
+      google_consolidate: {
+        Args: never
+        Returns: { free_cap: number; pct: number; sku: string; used_events: number }[]
+      }
+      google_reserve: {
+        Args: { p_cap: number; p_sku: string; p_soft_pct?: number }
+        Returns: string
+      }
+      is_order_restaurant_member: { Args: { p_order_id: string }; Returns: boolean }
+      is_restaurant_member: { Args: { p_restaurant_id: string }; Returns: boolean }
+      order_set_destination: {
+        Args: { p_lat: number; p_lng: number; p_order_id: string; p_source: string }
+        Returns: string
+      }
       order_tracking: {
         Args: { p_order_id: string }
         Returns: {
@@ -1030,6 +1256,11 @@ export type Database = {
           route_polyline: string
           status: string
           updated_at: string
+          restaurant_lat: number
+          restaurant_lng: number
+          route_provider: string
+          eta_updated_at: string
+          speed_kmh: number
         }[]
       }
       purge_delivery_positions: { Args: never; Returns: number }

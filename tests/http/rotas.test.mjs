@@ -82,3 +82,76 @@ test('nenhum segredo nos arquivos JS entregues ao navegador', { skip: !online },
     assert.doesNotMatch(js, /sb_secret_|service_role|SUPABASE_SERVICE_ROLE_KEY|GOOGLE_MAPS_SERVER_KEY/, s);
   }
 });
+
+// ---------- rastreamento (sem variáveis de mapas/Google: o modo "sem VPS, sem Google") ----------
+const postJ = (p, body, headers = {}) => get(p, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: typeof body === 'string' ? body : JSON.stringify(body) });
+
+test('APIs de mapa: mesma origem, login e corpo válidos antes de qualquer coisa', { skip: !online }, async () => {
+  for (const p of ['/api/maps/config', '/api/maps/route', '/api/maps/eta', '/api/maps/geocode']) {
+    assert.equal((await postJ(p, { pedido: UUID0 })).status, 403, `${p} sem Origin`);
+    assert.equal((await postJ(p, { pedido: UUID0 }, { origin: 'https://evil.example' })).status, 403, `${p} de outro site`);
+    assert.equal((await postJ(p, 'x'.repeat(5000), { origin: BASE })).status, 400, `${p} corpo grande/ inválido`);
+    assert.equal((await postJ(p, { pedido: UUID0, street: 'a' }, { origin: BASE })).status, 401, `${p} sem login`);
+  }
+  assert.equal((await get('/api/maps/route')).status, 405, 'rota de mapa só por POST');
+});
+
+test('mapa base público (pino do checkout): só URLs, nenhuma chave; sem VPS = sem tiles', { skip: !online }, async () => {
+  const r = await get('/api/maps/base');
+  assert.equal(r.status, 200);
+  const t = await r.text();
+  assert.doesNotMatch(t, /AIza|token|secret|key/i);
+  assert.equal(JSON.parse(t).tipo, null);
+});
+
+test('proxy de tiles do Google: sem link assinado (ou Google desligado) não serve nada', { skip: !online }, async () => {
+  assert.equal((await get('/api/maps/tiles/1/0/0')).status, 403);
+  assert.equal((await get('/api/maps/tiles/1/0/0?t=abc.def')).status, 403);
+  assert.equal((await get('/api/maps/tiles/99/0/0')).status, 400, 'zoom fora do limite');
+  assert.equal((await get('/api/maps/tiles/2/9/0')).status, 400, 'x fora da grade');
+  assert.equal((await get('/api/maps/tiles/a/b/c')).status, 400);
+});
+
+test('REST de pedidos e rastreio: visitante não vê nada', { skip: !online }, async () => {
+  for (const p of [`/api/orders/${UUID0}`, `/api/orders/${UUID0}/tracking`, `/api/orders/${UUID0}/tracking-stream`]) assert.equal((await get(p)).status, 401, p);
+  assert.equal((await get('/api/orders/xx/tracking')).status, 401, 'id inválido também pede login primeiro');
+});
+
+test('REST de admin: mesma origem e admin com 2FA (visitante recebe 404, sem revelar o endpoint)', { skip: !online }, async () => {
+  const casos = [[`/api/orders/${UUID0}/status`, { status: 'preparing' }], [`/api/deliveries/${UUID0}/assign-courier`, { courierId: UUID0 }], ['/api/admin/couriers', { email: 'a@b.co', ativo: true }], ['/api/admin/restaurants', { name: 'X' }]];
+  for (const [p, b] of casos) {
+    assert.equal((await postJ(p, b)).status, 403, `${p} sem Origin`);
+    assert.equal((await postJ(p, b, { origin: BASE })).status, 404, `${p} sem ser admin`);
+  }
+});
+
+test('GPS pelo contrato /api/courier/location: mesmas travas', { skip: !online }, async () => {
+  const corpo = { entregaId: UUID0, latitude: -23.5, longitude: -46.9, precisaoMetros: 8, capturadoEm: new Date().toISOString() };
+  assert.equal((await postJ('/api/courier/location', corpo)).status, 403, 'sem Origin');
+  assert.equal((await postJ('/api/courier/location', { ...corpo, entregaId: 'x' }, { origin: BASE })).status, 404, 'entrega inválida');
+  assert.equal((await postJ('/api/courier/location', { ...corpo, latitude: 91 }, { origin: BASE })).status, 400, 'latitude impossível');
+  assert.equal((await postJ('/api/courier/location', { ...corpo, capturadoEm: 'ontem' }, { origin: BASE })).status, 400, 'timestamp inválido');
+  assert.equal((await postJ('/api/courier/location', corpo, { origin: BASE })).status, 401, 'sem login');
+});
+
+test('job diário dos mapas: só com o segredo do cron', { skip: !online }, async () => {
+  assert.equal((await get('/api/cron/mapas')).status, 401);
+  assert.equal((await get('/api/cron/mapas', { headers: { authorization: 'Bearer chute' } })).status, 401);
+});
+
+test('CSP sem domínios do Google Maps em script/img/connect (mapa vem do VPS ou do nosso proxy)', { skip: !online }, async () => {
+  const csp = (await get('/')).headers.get('content-security-policy') ?? '';
+  for (const d of ['script-src', 'img-src', 'connect-src']) assert.doesNotMatch(csp.split(';').find(x => x.trim().startsWith(d)) ?? '', /googleapis|gstatic/, d);
+});
+
+test('nenhum segredo/chave em NENHUM JS do build (inclusive os carregados sob demanda, como o mapa)', async () => {
+  const { readdirSync, readFileSync, existsSync } = await import('node:fs');
+  const dir = new URL('../../.next/static/', import.meta.url);
+  if (!existsSync(dir)) return;
+  const arquivos = readdirSync(dir, { recursive: true }).filter(f => String(f).endsWith('.js'));
+  assert.ok(arquivos.length > 10);
+  for (const f of arquivos) {
+    const js = readFileSync(new URL(String(f).replaceAll('\\', '/'), dir), 'utf8');
+    assert.doesNotMatch(js, /AIza[0-9A-Za-z_-]{35}|sb_secret_|service_role|GOOGLE_MAPS_API_KEY|MAPAS_TOKEN|MAPAS_HMAC_SECRET|CRON_SECRET/, String(f));
+  }
+});

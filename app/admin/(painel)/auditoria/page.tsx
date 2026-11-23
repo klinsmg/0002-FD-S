@@ -10,7 +10,7 @@ const EVENTO: Record<string, string> = {
   ENTREGADOR_ATRIBUIDO: 'Entregador escolhido', SAIU_PARA_ENTREGA: 'Saiu para entrega', EM_ROTA: 'A caminho', CHEGANDO: 'Chegando', CHEGOU_NO_LOCAL: 'Entregador no local',
   ENTREGUE: 'Entregue (confirmado no endereço)', RETIRADO: 'Retirado', CANCELADO: 'Cancelado', FALHA_NA_ENTREGA: 'Entrega não concluída', ENTREGA_RECUSADA: 'Entregador recusou',
 };
-const ACAO: Record<string, string> = { pedido: 'Criar pedido', login_admin: 'Login do painel', codigo_2fa: 'Código 2FA', rastreio_negado: 'GPS de entrega não atribuída' };
+const ACAO: Record<string, string> = { pedido: 'Criar pedido', login_admin: 'Login do painel', codigo_2fa: 'Código 2FA', rastreio_negado: 'GPS de entrega não atribuída', gps: 'Envio de GPS em excesso', mapas: 'Mapa/rota em excesso' };
 const quando = (d: string) => new Date(d).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 // IP pela metade na tela (o registro completo fica no banco por 7 dias)
 const ipCurto = (ip: string | null) => (ip ? ip.replace(/(\d+\.\d+)\.\d+\.\d+$/, '$1.x.x').replace(/^([0-9a-f]+:[0-9a-f]+):.*$/i, '$1:…') : '—');

@@ -124,7 +124,15 @@ liberado pelo admin) e **Sistema** (banco/servidor).
 |---|---|---|---|
 | GET | `/api/sessao` | Nenhuma (responde "não logado") | Cabeçalho pergunta se há sessão (só o primeiro nome) |
 | GET | `/api/enderecos` | Sessão do cliente (vazio sem sessão) | Nome e endereços salvos para o carrinho |
-| POST | `/api/entregas/{id}/posicao` | Sessão do entregador vinculado + Origin igual ao site + corpo ≤ 1 KB | GPS do entregador; dispara ETA |
+| POST | `/api/entregas/{id}/posicao` e `/api/courier/location` | Sessão do entregador vinculado + Origin igual ao site + corpo ≤ 1 KB + limite `gps` (20/min) | GPS do entregador (a cada 15 s); a rota só é recalculada por gatilho |
+| GET | `/api/orders/{id}`, `/api/orders/{id}/tracking` | Sessão; RLS (dono, admin, equipe da loja, entregador) | Resumo do pedido / rastreio (posição ~100 m) |
+| GET | `/api/orders/{id}/tracking-stream` | Idem + limite `mapas` | Rastreio por SSE (alternativa ao WebSocket) |
+| POST | `/api/orders/{id}/status`, `/api/deliveries/{pedido}/assign-courier`, `/api/admin/restaurants`, `/api/admin/couriers` | Admin com aal2 + senha + Origin (senão 404) | Mesmas regras do painel |
+| POST | `/api/maps/route`, `/api/maps/eta`, `/api/maps/config` | Sessão + RLS do pedido + Origin + limite `mapas` | Rota/ETA (manual recalcula após 2 min), configuração segura do mapa (1 por sessão) |
+| POST | `/api/maps/geocode` | Sessão + Origin + limite `mapas` | Sugestão do ponto do endereço (Nominatim próprio) |
+| GET | `/api/maps/base` | Nenhuma (cache de CDN 5 min) | Mapa base próprio do pino do checkout + ponto da loja |
+| GET | `/api/maps/tiles/{z}/{x}/{y}?t=` | Link assinado (HMAC, 2 h) + Google ligado + cota | Proxy dos tiles do Google (chave só no servidor) |
+| GET | `/api/cron/mapas` | `Authorization: Bearer CRON_SECRET` (Vercel Cron) | Consolidação diária da cota do Google |
 | GET | `/admin/relatorios/export?tipo=diario\|mensal\|produtos` | Admin com aal2 + senha | CSV dos relatórios |
 | POST | `/admin/logout` | Sessão | Sair do painel |
 | GET | `/auth/callback?code=` | Código OAuth/PKCE | Troca o código pela sessão; destino de lista fixa |
@@ -132,3 +140,19 @@ liberado pelo admin) e **Sistema** (banco/servidor).
 | POST | Server Actions (31, seção 1) | Conforme o perfil (verificado na ação e no banco) | Formulários e ações do site (mesma origem) |
 | WSS | `wss://<projeto>.supabase.co/realtime/v1` canais `pedido:<id>` e `loja` | JWT do usuário; RLS em `realtime.messages` | Tempo real (só leitura; ninguém publica pelo navegador) |
 | HTTPS | `https://<projeto>.supabase.co/rest/v1/*` | Chave publicável + JWT; RLS em todas as tabelas | API do banco usada pelo servidor (e acessível com o token do próprio usuário) |
+
+## 4. Rastreamento self-hosted e Google opcional (23/11/2026)
+
+Arquitetura, custos e ativação: **`docs/arquitetura-rastreamento.md`**. Infra do VPS: **`infra/README.md`**.
+
+| Perfil | Novo |
+|---|---|
+| Cliente | Pino opcional do endereço no checkout (mapa próprio); mapa do pedido com loja, casa, entregador e rota (Leaflet); ETA local; "Atualizar previsão" (no máximo a cada 2 min) |
+| Entregador | GPS a cada 15 s; app instalável (PWA, `/entregador.webmanifest`) |
+| Loja/Admin | **Admin → Mapas**: saúde do VPS, ponto da loja, Google por loja (plano, % de pedidos), consumo e avisos da cota, chamadas por dia/pedido/loja/entregador, custo estimado; despacho aceita coordenadas coladas |
+| Restaurante (equipe) | Papel `restaurant_members`: só LÊ os pedidos, itens, entregas e eventos da própria loja (sem painel próprio ainda) |
+| Sistema | Migração 020 (restaurants, destino do pedido, provedor da rota, velocidade, `route_cache`, limites `gps`/`mapas`) e 021 (`google_api_usage`, `google_api_calls`, `google_api_alerts`, `google_reserve`, `google_consolidate`) |
+
+Bibliotecas: `lib/mapas/{config,provedores,servico,rota-api}.ts`, `lib/gps.ts`, `lib/despacho.ts`, `lib/api.ts`,
+`lib/mapa-leaflet.ts`, `lib/pino.ts`; regras puras novas em `lib/regras.ts` (polyline, desvio, `etaLocal`,
+`deveRecalcular`, `chaveRota`, `lerCoords`).

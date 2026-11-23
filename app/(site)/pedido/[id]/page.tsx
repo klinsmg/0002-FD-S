@@ -64,7 +64,7 @@ export default async function Pedido({ params }: { params: Promise<{ id: string 
           </ol>
         )}
         {r && p.status === 'out_for_delivery' && (
-          <MapaRastreio pedido={p.id} inicial={{ status: r.status, lat: r.lat, lng: r.lng, destLat: r.dest_lat, destLng: r.dest_lng, eta: r.eta_minutes, km: r.distance_km, rota: r.route_polyline, atualizadoEm: r.updated_at }} />
+          <MapaRastreio pedido={p.id} inicial={{ status: r.status, lat: r.lat, lng: r.lng, destLat: r.dest_lat, destLng: r.dest_lng, eta: r.eta_minutes, km: r.distance_km, rota: r.route_polyline, atualizadoEm: r.updated_at, lojaLat: r.restaurant_lat, lojaLng: r.restaurant_lng, provedor: r.route_provider, etaEm: r.eta_updated_at, velocidade: r.speed_kmh }} />
         )}
         {!!eventos?.length && (
           <details className="eventos" open={p.status === 'out_for_delivery'}>

@@ -63,6 +63,8 @@ export function carrinho(cfg: Cfg): any {
   const c: any = {
     ...cfg,
     cat: 'all', sub: 'all', q: '', itens: [] as Linha[], opc: null as any, opcErro: '', ultimoEnvio: 0, open: false, passo: '', envioPendente: false, nomeTmp: '', nomeErro: '', endErro: '', cepMsg: '', salvos: [] as any[], salvoId: '', nome: '', tipo: 'retirada', tipoOk: false, a: { cep: '', rua: '', num: '', comp: '', bairro: '', cidade: '', uf: '' }, obs: '', erro: '', feito: false, abriu: null as Element | null,
+    // pino do endereço no mapa (opcional): só existe com tiles próprios configurados; o mapa carrega ao clicar
+    geo: null as null | { lat: number; lng: number; fonte: 'pino' }, pinoBase: null as any, pinoAberto: false, pinoMsg: '',
 
     // --- filtro do cardápio ---
     n(s: string) { return s.normalize('NFD').replace(/[^a-z0-9 ]/gi, '').toLowerCase(); },
@@ -103,6 +105,8 @@ export function carrinho(cfg: Cfg): any {
         try { localStorage.setItem(KEY, JSON.stringify({ itens: this.itens, nome: this.nome, tipo: this.tipo, tipoOk: this.tipoOk, a: this.a, obs: this.obs })); } catch { /* ignora */ }
       };
       for (const f of ['itens', 'nome', 'tipo', 'tipoOk', 'a', 'obs']) this.$watch(f, salvar);
+      this.$watch('a', () => { if (this.geo) { this.geo = null; this.pinoMsg = 'Endereço alterado: confirme o ponto de novo, se quiser.'; } this.pinoAberto = false; });
+      this.$watch('open', (v: boolean) => { if (v && this.tipo === 'entrega') this.carregarBase(); });
       // gaveta: trava a rolagem do fundo, leva o foco ao botão de fechar e devolve o foco a quem abriu
       this.$watch('opc', (v: unknown) => { document.body.style.overflow = v || this.open ? 'hidden' : ''; });
       this.$watch('open', (v: boolean) => {
@@ -254,6 +258,27 @@ export function carrinho(cfg: Cfg): any {
       Object.assign(this.a, { cep: z.length > 5 ? `${z.slice(0, 5)}-${z.slice(5)}` : z, rua: t(s.street), num: t(s.number), comp: t(s.complement), bairro: t(s.district), cidade: t(s.city), uf: t(s.state).slice(0, 2).toUpperCase() });
       this.cepMsg = '';
     },
+    // --- pino no mapa: sugestão pelo endereço (Nominatim próprio) e o cliente arrasta até a entrada ---
+    async carregarBase() {
+      if (this.pinoBase !== null) return;
+      this.pinoBase = false;
+      try { const r = await fetch('/api/maps/base', { signal: AbortSignal.timeout(6000) }); const j = r.ok ? await r.json() : null; this.pinoBase = j?.tiles ? j : false; } catch { this.pinoBase = false; }
+    },
+    async abrirPino() {
+      const el = this.$refs.pino as HTMLElement | undefined;
+      if (!el || !this.pinoBase) return;
+      this.pinoAberto = true; this.pinoMsg = 'Carregando o mapa…';
+      const a = this.a;
+      let ponto = this.geo ?? this.pinoBase.loja;
+      try {
+        const r = await fetch('/api/maps/geocode', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ street: a.rua, number: a.num, district: a.bairro, city: a.cidade, state: a.uf, zip_code: a.cep }), signal: AbortSignal.timeout(8000) });
+        if (r.ok && !this.geo) { const g = await r.json(); if (Number.isFinite(g.lat)) ponto = { lat: g.lat, lng: g.lng }; }
+      } catch { /* sem sugestão: começa na loja */ }
+      if (!ponto) { this.pinoMsg = 'Mapa indisponível agora. A loja localiza pelo endereço.'; return; }
+      const { abrirPino } = await import('./pino');
+      await abrirPino(el, this.pinoBase, ponto, (p: { lat: number; lng: number }) => { this.geo = { ...p, fonte: 'pino' }; this.pinoMsg = 'Ponto confirmado. Obrigado!'; });
+      this.pinoMsg = 'Arraste o marcador até a entrada da casa (opcional).';
+    },
     // --- finalizar: monta o pedido e envia ao servidor (Server Action createOrder). Preços e totais são recalculados lá, no banco. ---
     finalizar() {
       this.erro = '';
@@ -269,6 +294,7 @@ export function carrinho(cfg: Cfg): any {
       campo.value = JSON.stringify({
         nome: limpa(this.nome), tipo: this.tipo === 'entrega' ? 'delivery' : 'pickup', obs: limpa(this.obs),
         addr: this.tipo === 'entrega' ? { street: a.rua, number: a.num, complement: a.comp, district: a.bairro, city: a.cidade, state: a.uf, zip_code: a.cep } : null,
+        geo: this.tipo === 'entrega' && this.geo ? { lat: this.geo.lat, lng: this.geo.lng, fonte: 'pino' } : null,
         itens: (this.itens as Linha[]).map(i => ({ cat: i.k.split('|')[0], nome: i.n, variante: i.v, qtd: i.q, ponto: i.ponto ?? null, obs: i.obs, extras: (i.ex ?? []).map(e => ({ nome: e.n, qtd: e.q })) })),
       });
       form.requestSubmit();

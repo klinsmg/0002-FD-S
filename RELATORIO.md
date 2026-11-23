@@ -339,3 +339,84 @@ Gerado em **`INVENTARIO.md`**:
   (a resposta 200 da Routes no primeiro teste foi passageira).
 - ETA passa a ser **sem trânsito** (`TRAFFIC_UNAWARE`, faixa Essentials da Routes API, cota grátis maior que a Pro) e
   recalculado **no máximo a cada 2 min** por entrega (antes: com trânsito, a cada 45 s). Texto do mapa do cliente ajustado.
+
+## Reestruturação do rastreamento (23/11/2026)
+
+Pedidos aplicados, em ordem: (1) rastreamento self-hosted, sem API de terceiros; (2) Google Maps Platform como camada
+opcional com cota, cache e fallback; (3) regra "GPS barato e frequente / rota do Google rara / OSRM sempre disponível /
+mapa uma vez por sessão / ETA local"; (4) testes de segurança sem as variáveis de mapas/Google.
+Arquitetura completa: `docs/arquitetura-rastreamento.md`. VPS: `infra/README.md`.
+
+### Decisões (escolhidas pelo dono nas perguntas)
+- **Base mantida** (Next.js + Supabase na Vercel); só o que dependia do Google foi para a infra própria. Os endpoints do
+  prompt viraram Route Handlers com o mesmo contrato; `POST /api/auth/login` e `POST /api/orders` continuam pelo Supabase
+  Auth e pela Server Action do checkout (já aprovados; duplicar abriria outra porta de entrada).
+- **VPS ainda não existe**: entregue `infra/` (docker-compose, Nginx, Let's Encrypt, script de dados) e o site segue
+  funcionando sem ele (ETA local, mapa simplificado, coordenadas coladas pela loja).
+- **Endereço**: Nominatim próprio sugere e o cliente pode arrastar o pino no checkout (opcional).
+- **Uma loja**, com `restaurants`/`restaurant_members` e RLS "só vê os próprios pedidos" prontos.
+
+### Decisões tomadas sozinho (para revisão)
+- **PostGIS não usado**: o `distance_m` (Haversine) já resolve uma loja; PostGIS quebraria o banco de testes (PGlite).
+- **Tabelas com os nomes já em produção**: `delivery_positions` (= courier_locations) e `order_events` (= tracking_events).
+- **Mapa no navegador**: Leaflet + protomaps-leaflet (PMTiles vetorial no canvas, sem fontes/sprites para hospedar).
+  Carregado sob demanda: fora do JS inicial de todas as páginas.
+- **Mapa Google sem a chave no navegador**: em vez do Maps JavaScript API (que exige a chave no front), tiles do Map Tiles
+  API pelo nosso proxy `/api/maps/tiles` com link assinado (HMAC, 2 h). Antes de ligar, confira os termos do Google sobre
+  exibir o logo/atribuição (hoje só texto "Dados do mapa © Google").
+- **Routes API sem trânsito** (Essentials) também no Google, mantendo a decisão de 22/11 (cota grátis maior).
+- **GPS a cada 15 s** (antes 7 s em movimento / 25 s parado), como pede o prompt.
+- **Pedido de teste** = nome do cliente com "teste" (não há marca de teste no banco). **Rascunho** = status `pending`.
+- **Limites novos**: `gps` 20/min por entregador/aparelho (bloqueio de 2 min, para não cegar uma entrega) e `mapas`
+  40 por 10 min por usuário.
+- **Chave do Embed separada** (`GOOGLE_MAPS_EMBED_KEY`): com o Google ligado, `GOOGLE_MAPS_API_KEY` é a chave secreta e
+  nunca vai ao HTML do mapa de contato (o nome antigo só vale com o Google desligado).
+- `lib/geo.ts` (Google Geocoding/Routes de 22/11) removido; as variáveis `GOOGLE_MAPS_SERVER_KEY` e
+  `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY` não são mais usadas (podem ser apagadas na Vercel).
+
+### Testes
+| Suíte | Antes | Agora |
+|---|---|---|
+| Banco (PGlite) | 293 | **356** (020/021: loja padrão, destino do pedido, equipe da loja só leitura e só da própria loja, rota com provedor, código antigo com 4 parâmetros, cache só servidor, limite do GPS, reserva atômica, avisos 70/85/95/100%, bloqueio, consolidação, rollback 020/021) |
+| Unitários | 9 | **34** (25 do rastreamento: polyline, desvio, ETA local, gatilhos, cache, Google com cota, fallback para OSRM sem cota/erro/timeout, estimativa, sem Google, sem VPS, elegibilidade, entrega de 20 min com GPS a cada 15 s → 1 chamada ao Google, map matching, mapa 1x por sessão, HMAC, Nominatim) |
+| HTTP (servidor local) | 8 grupos | **17 grupos, 29 testes** |
+| Nginx do VPS (container local) | — | **20 checagens** |
+| Sondagem de segurança (script + curl) | — | **45** |
+
+### Testes de segurança (sem variáveis de mapas/Google, servidor local)
+Tudo passou depois das correções abaixo:
+- CSRF: Origin ausente, `null`, de outro site, com sufixo enganoso ou outra porta → 403 em todas as mutações.
+- Corpo: JSON inválido/array → 400; > limite, Content-Length mentiroso e chunked de 50 KB → 413; `__proto__` sem efeito;
+  NaN/Infinity, precisão negativa e timestamp inválido no GPS → 400.
+- IDs maliciosos (SQL, traversal, NUL, 500 caracteres) → 400/401/404, sem erro interno; tiles com z/x/y fora da grade → 400;
+  token de tile forjado/adulterado/vencido → 403.
+- Métodos errados → 405; admin sem 2FA ou não-admin → 404 genérico; SSE sem login não abre stream; cron sem segredo → 401.
+- Nenhum segredo/chave (`AIza…`, `sb_secret_`, `service_role`, `MAPAS_TOKEN`…) em **nenhum** JS do build, inclusive os
+  carregados sob demanda; `/api/maps/base` só devolve URLs.
+- CSP sem domínios do Google em script/img/connect.
+- Nginx do VPS: OSRM/Nominatim → 403 sem token, com token errado ou vazio, e em métodos diferentes de GET; só `*.pmtiles`
+  servidos (o `.osm.pbf` → 404, traversal → 404/400); CORS só do site; corpo > 4 KB → 413.
+
+Achados no trabalho e já corrigidos:
+| # | Gravidade | Achado | Correção |
+|---|---|---|---|
+| R1 | alta (funcional) | Políticas novas (equipe da loja) entravam em recursão infinita: toda leitura de pedidos quebraria | Função `is_order_restaurant_member` (security definer) |
+| R2 | média | SSE segurava uma função por 55 s sem limite: uma conta abriria dezenas de conexões | Limite `mapas` na abertura |
+| R3 | média (configuração) | Nome `GOOGLE_MAPS_API_KEY` era o da chave pública do Embed: ligar o Google com a chave de servidor ali a exporia no HTML | `GOOGLE_MAPS_EMBED_KEY`; o nome antigo só vale com o Google desligado |
+| R4 | baixa | `config` do mapa podia ser pedido em série para gastar a cota de carregamentos | 1 `map_load` por pedido a cada 2 h (+ limite `mapas`) |
+| R5 | baixa | `/api/maps/base` (público) consultava o banco a cada acesso | Cache de CDN (`s-maxage=300`) |
+| R6 | baixa (funcional) | Gatilho do canal não publicava rota nova gravada no mesmo milissegundo | Publica também quando rota/provedor mudam |
+
+Riscos aceitos/pendentes:
+- Link de tiles do Google pode ser repassado por até 2 h: no máximo consome a cota (o teto impede cobrança).
+- `too_far` (pino a > 50 km) só vale depois que o ponto da loja for cadastrado em **Admin → Mapas**.
+- GPS falsificado pelo próprio entregador (V9) e CSP com `unsafe-inline`/`unsafe-eval` (V8) continuam como antes.
+- Token do VPS é um segredo fixo compartilhado: troque se vazar (passo a passo no `infra/README.md`).
+
+### Não testado (e por quê)
+- **OSRM/Nominatim/PMTiles com dados reais**: o extrato do Brasil tem ~2 GB e a importação do Nominatim leva horas; os
+  provedores foram testados com respostas no formato real e o Nginx num container local. Testar no VPS ao subir.
+- **Telas logadas no navegador** (mapa do pedido, pino, Admin → Mapas): sem contas de teste, como antes.
+- **Migrações 020/021 NÃO aplicadas em produção**: o login do Supabase CLI expirou ("Invalid access token").
+  **Não publique este código antes de aplicá-las**: o despacho e o checkout novo leem colunas que só existem nelas.
+

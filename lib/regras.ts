@@ -71,3 +71,85 @@ export function agruparHorarios(linhas: Horario[]): [string, string][] {
     return [rot, g.t];
   });
 }
+
+// ---------- rastreamento: polyline, desvio, ETA local e quando recalcular a rota ----------
+type P = { lat: number; lng: number };
+
+// Polyline codificada (formato do Google e do OSRM com geometries=polyline, precisão 5) -> pontos. Limita o tamanho.
+export function decodificarPolyline(s: string, max = 5000): P[] {
+  const pts: P[] = [];
+  let i = 0, lat = 0, lng = 0;
+  const parte = () => {
+    let r = 0, sh = 0, b: number;
+    do { if (i >= s.length) return null; b = s.charCodeAt(i++) - 63; r |= (b & 0x1f) << sh; sh += 5; } while (b >= 0x20 && sh < 35);
+    return r & 1 ? ~(r >> 1) : r >> 1;
+  };
+  while (i < s.length && pts.length < max) {
+    const a = parte(), b = parte();
+    if (a === null || b === null) break;
+    lat += a; lng += b;
+    pts.push({ lat: lat / 1e5, lng: lng / 1e5 });
+  }
+  return pts;
+}
+
+// Distância (m) do ponto até a rota (segmento mais próximo; projeção plana local, boa para poucos km)
+export function distanciaAteRota(p: P, rota: P[]): number {
+  if (!rota.length) return Infinity;
+  if (rota.length === 1) return distanciaM(p, rota[0]);
+  const kx = 111320 * Math.cos((p.lat * Math.PI) / 180), ky = 110540;
+  let min = Infinity;
+  for (let i = 1; i < rota.length; i++) {
+    const ax = (rota[i - 1].lng - p.lng) * kx, ay = (rota[i - 1].lat - p.lat) * ky;
+    const bx = (rota[i].lng - p.lng) * kx, by = (rota[i].lat - p.lat) * ky;
+    const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+    const t = l2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / l2)) : 0;
+    min = Math.min(min, Math.hypot(ax + t * dx, ay + t * dy));
+  }
+  return min;
+}
+
+// ETA local (navegador e servidor), entre recálculos de rota: mistura o que sobrou da última ETA calculada (menos o
+// tempo decorrido) com distância restante / velocidade média recente do entregador. Sem nada disso: estimativa urbana.
+export function etaLocal(x: { etaRotaMin: number | null; calculadoEm: number | null; agora: number; restanteM: number | null; velocidades: number[] }): number | null {
+  const vs = x.velocidades.filter(v => Number.isFinite(v) && v >= 3 && v <= 120).slice(-8);
+  const vel = vs.length >= 2 ? vs.reduce((a, b) => a + b, 0) / vs.length : null;
+  const porRota = x.etaRotaMin !== null && x.calculadoEm !== null ? Math.max(0, x.etaRotaMin - (x.agora - x.calculadoEm) / 60000) : null;
+  const porVel = x.restanteM !== null && vel !== null && vel >= 8 ? ((x.restanteM * 1.3) / 1000 / vel) * 60 : null;
+  const porDist = x.restanteM !== null ? ((x.restanteM * 1.4) / 1000 / 25) * 60 : null;
+  const v = porRota !== null && porVel !== null ? (porRota + porVel) / 2 : porRota ?? porVel ?? porDist;
+  return v === null ? null : Math.max(1, Math.round(v));
+}
+
+// Quando recalcular a rota. Recalcular é caro (Google) ou custa CPU (OSRM); GPS é barato e não recalcula nada sozinho.
+//  - nunca antes do intervalo mínimo (padrão 2 min), salvo a primeira rota
+//  - gatilhos reais (podem usar o Google): saiu para entrega/início, virou "a caminho", desvio da rota, perto do
+//    destino, pedido manual do cliente
+//  - sem gatilho, depois do intervalo: recálculo periódico, SÓ no provedor gratuito (OSRM)
+export type Recalculo = { recalcular: boolean; motivo: string; podeGoogle: boolean };
+export function deveRecalcular(x: {
+  agora: number; ultimaRotaEm: number | null; intervaloMs: number; posicao: P | null; destino: P; rota: P[];
+  virouEmRota?: boolean; manual?: boolean; desvioM?: number; pertoM?: number;
+}): Recalculo {
+  if (x.ultimaRotaEm === null) return { recalcular: true, motivo: 'inicio', podeGoogle: true };
+  if (x.agora - x.ultimaRotaEm < x.intervaloMs) return { recalcular: false, motivo: 'intervalo', podeGoogle: false };
+  if (x.manual) return { recalcular: true, motivo: 'manual', podeGoogle: true };
+  if (x.virouEmRota) return { recalcular: true, motivo: 'em_rota', podeGoogle: true };
+  if (x.posicao) {
+    if (x.rota.length > 1 && distanciaAteRota(x.posicao, x.rota) > (x.desvioM ?? 150)) return { recalcular: true, motivo: 'desvio', podeGoogle: true };
+    if (distanciaM(x.posicao, x.destino) < (x.pertoM ?? 800)) return { recalcular: true, motivo: 'perto', podeGoogle: true };
+  }
+  return { recalcular: true, motivo: 'periodico', podeGoogle: false };
+}
+
+// Chave do cache de rota: origem/destino arredondados (~100 m), modo e janela de horário (15 min)
+export const chaveRota = (o: P, d: P, modo: string, agora: number) =>
+  `${modo}:${aproximar(o.lat)},${aproximar(o.lng)}>${aproximar(d.lat)},${aproximar(d.lng)}@${Math.floor(agora / 900000)}`;
+
+// "-23.5367, -46.9342" (vírgula ou espaço) -> ponto
+export function lerCoords(v: string): { lat: number; lng: number } | null {
+  const m = v.trim().match(/^(-?\d{1,2}(?:\.\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:\.\d+)?)$/);
+  if (!m) return null;
+  const lat = Number(m[1]), lng = Number(m[2]);
+  return Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat, lng } : null;
+}

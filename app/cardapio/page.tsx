@@ -332,7 +332,13 @@ export default function Cardapio() {
                 <label className="radio"><input type="radio" value="retirada" {...A({ 'x-model': 'tipo', 'x-on:change': 'tipoOk=true' })} /> Retirar na loja</label>
                 <label className="radio"><input type="radio" value="entrega" {...A({ 'x-model': 'tipo', 'x-on:change': 'tipoOk=true' })} /> Entrega</label>
               </fieldset>
-              <div className="end-campos" x-show="tipo==='entrega'" x-cloak="">{campoEnd()}</div>
+              <div className="end-campos" x-show="tipo==='entrega'" x-cloak="">{campoEnd()}
+                <div className="pino" x-show="endOk && pinoBase" x-cloak="">
+                  <button type="button" className="link-btn" x-show="!pinoAberto" {...A({ 'x-on:click': 'abrirPino()' })}>Marcar a entrada no mapa (opcional)</button>
+                  <div className="pino-mapa" x-show="pinoAberto" x-ref="pino" role="application" aria-label="Mapa: arraste o marcador até a entrada" />
+                  <p className="nota" aria-live="polite" x-show="pinoMsg" x-text="pinoMsg" />
+                </div>
+              </div>
               <label>Observações do pedido (opcional)<textarea rows={2} maxLength={300} {...A({ 'x-model': 'obs' })} /></label>
             </div>
           </details>

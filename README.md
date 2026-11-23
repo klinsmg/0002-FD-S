@@ -1,6 +1,6 @@
 # Dogão Itapevi — site
 
-Next.js 16 (App Router) + TypeScript + Tailwind v4 + CSS nativo · GSAP/ScrollTrigger + Alpine.js (carregados em lazy após o 1º render) · deploy na Vercel.
+Next.js 16 (App Router) + TypeScript + Tailwind v4 + CSS nativo · Alpine.js (lazy após o 1º render) · Leaflet (mapas, sob demanda) · deploy na Vercel.
 Base: template `foodvitrinetemplete`.
 
 ## Comandos
@@ -20,6 +20,7 @@ Domínio: `mdogao.com.br`, definido em `site` (`lib/info.ts`). Ele alimenta `met
 Next.js (Vercel) + Supabase (Postgres com RLS, Auth com Google e e-mail/senha+2FA, Realtime). Perfis: cliente,
 loja/admin e entregador. Lista completa de funções, páginas e endpoints: **`INVENTARIO.md`**.
 Relatório de testes, desempenho e segurança: **`RELATORIO.md`**.
+Rastreamento (mapa, rotas, ETA, Google opcional com cota): **`docs/arquitetura-rastreamento.md`**; VPS de mapas: **`infra/README.md`**.
 
 ## Testes
 `npm test` (unitários + banco no PGlite, sem tocar o banco real) · `npm run test:http` (com `next start -p 3100` ligado).
