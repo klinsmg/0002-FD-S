@@ -6,6 +6,7 @@ import { limpa } from '@/lib/conta';
 import { after } from 'next/server';
 import { despachar } from '@/lib/despacho';
 import { dadosRestaurante } from '@/lib/api';
+import { geocodificarTexto } from '@/lib/mapas/servico';
 import { PAGINAS_COM_HORARIO } from '@/lib/horarios';
 
 // Mutações do painel. Todas começam por exigirAdmin() e usam o cliente do USUÁRIO (RLS), nunca a service role.
@@ -214,13 +215,21 @@ export async function limparGpsAntigo() {
 export async function salvarRestaurante(f: FormData) {
   const { supabase } = await exigirAdmin();
   const id = idDe(f);
+  // endereço preenchido = o sistema acha o ponto; vazio = mantém (ou usa o ajuste manual de coordenadas)
+  const endereco = String(f.get('endereco') ?? '').replace(/[\p{Cc}\p{Cf}]/gu, ' ').trim();
+  let lat = String(f.get('lat') ?? '').trim(), lng = String(f.get('lng') ?? '').trim(), aprox = false;
+  if (endereco) {
+    const p = await geocodificarTexto(endereco);
+    if (!p) redirect('/admin/mapas?erro=endereco#loja');
+    lat = String(p.lat); lng = String(p.lng); aprox = p.aproximado;
+  }
   const d = dadosRestaurante({
-    name: f.get('name'), lat: String(f.get('lat') ?? '').trim(), lng: String(f.get('lng') ?? '').trim(),
+    name: f.get('name'), lat, lng,
     google_maps_enabled: f.get('google') === 'on', plan: f.get('plan'), google_maps_percent: String(f.get('percent') ?? ''),
   });
   if (!id || !d) redirect('/admin/mapas?erro=restaurante#loja');
   const { error } = await supabase.from('restaurants').update(d).eq('id', id);
   if (error) redirect('/admin/mapas?erro=falha#loja');
   atualizar('/admin/mapas');
-  redirect('/admin/mapas?ok=loja#loja');
+  redirect(`/admin/mapas?ok=${aprox ? 'aprox' : 'loja'}#loja`);
 }

@@ -294,3 +294,19 @@ test('Nominatim próprio: número da casa = exato; rua/CEP = aproximado; nada = 
   const semVps = deps({ c: cfg({}, { nominatim: '' }) });
   assert.equal(await S.geocodificar(end, semVps), null); assert.equal(semVps.n.nominatim, 0);
 });
+
+test('endereço da loja: VPS com token; sem VPS, Nominatim público com User-Agent; não achou = null', async () => {
+  const chamadas = [];
+  const f = resp => async (url, init) => { chamadas.push({ url: String(url), h: init.headers }); return new Response(JSON.stringify(resp), { status: 200 }); };
+  const achou = [{ lat: '-23.5367', lon: '-46.9342' }];
+  assert.deepEqual(await S.geocodificarTexto('R. X, 1, Itapevi', { cfg: { nominatim: 'https://vps/nominatim', token: 't' }, fetch: f(achou) }), { lat: -23.5367, lng: -46.9342, aproximado: true });
+  assert.match(chamadas[0].url, /^https:\/\/vps\/nominatim\/search\?q=R/); assert.equal(chamadas[0].h['X-Mapas-Token'], 't');
+  assert.deepEqual(await S.geocodificarTexto('R. X', { cfg: { nominatim: '', token: '' }, fetch: f(achou) }), { lat: -23.5367, lng: -46.9342, aproximado: true });
+  assert.match(chamadas[1].url, /^https:\/\/nominatim\.openstreetmap\.org\/search\?.*countrycodes=br/); assert.ok(chamadas[1].h['User-Agent']); assert.equal(chamadas[1].h['X-Mapas-Token'], undefined);
+  assert.equal(await S.geocodificarTexto('nada', { cfg: { nominatim: '', token: '' }, fetch: f([]) }), null);
+  // rua fora do OSM: tenta o CEP; casa achada = exato
+  const seq = [[], achou]; const g = async url => { chamadas.push({ url: String(url) }); return new Response(JSON.stringify(seq.shift()), { status: 200 }); };
+  assert.deepEqual(await S.geocodificarTexto('R. Y, 146, Itapevi, 06693005', { cfg: { nominatim: '', token: '' }, fetch: g }), { lat: -23.5367, lng: -46.9342, aproximado: true });
+  assert.match(chamadas.at(-1).url, /postalcode=06693-005/);
+  assert.deepEqual(await S.geocodificarTexto('R. Z, 1', { cfg: { nominatim: '', token: '' }, fetch: f([{ lat: '1', lon: '2', addresstype: 'house' }]) }), { lat: 1, lng: 2, aproximado: false });
+});

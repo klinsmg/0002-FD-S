@@ -198,6 +198,27 @@ export async function geocodificar(e: { street?: string; number?: string; distri
   return null;
 }
 
+// Endereço da loja em texto livre (Admin → Mapas; raro). Nominatim do VPS; sem VPS, o Nominatim público do OSM
+// (política de uso: tráfego leve, 1 req/s, User-Agent próprio — aqui é 1 chamada por "Salvar loja").
+export async function geocodificarTexto(q: string, deps: Pick<Deps, 'cfg' | 'fetch'> = depsPadrao()): Promise<(Ponto & { aproximado: boolean }) | null> {
+  const proprio = deps.cfg.nominatim;
+  const base = proprio || 'https://nominatim.openstreetmap.org';
+  const headers: Record<string, string> = proprio ? { 'X-Mapas-Token': deps.cfg.token } : { 'User-Agent': 'mapas-admin/1.0 (geocodificacao ocasional)' };
+  // o OSM não tem todas as ruas do Brasil: sem a rua, cai no CEP (centro do CEP = aproximado)
+  const cep = q.match(/\b\d{5}-?\d{3}\b/)?.[0];
+  const tentativas: Record<string, string>[] = [{ q: q.slice(0, 200) }, ...(cep ? [{ postalcode: cep.replace(/^(\d{5})(\d{3})$/, '$1-$2') }] : [])];
+  for (const [i, t] of tentativas.entries()) {
+    try {
+      const r = await deps.fetch(`${base}/search?${new URLSearchParams({ ...t, countrycodes: 'br', format: 'jsonv2', limit: '1' })}`, { headers, signal: AbortSignal.timeout(6000), cache: 'no-store' });
+      if (!r.ok) return null;
+      const x = (await r.json().catch(() => null))?.[0];
+      const lat = Number(x?.lat), lng = Number(x?.lon);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng, aproximado: i > 0 || !['house', 'building', 'place'].includes(String(x?.addresstype)) };
+    } catch { return null; }
+  }
+  return null;
+}
+
 // Ponto do pedido aceito? (perto da loja; evita pino arrastado para outra cidade ou valor forjado)
 export const pontoValido = (p: Ponto, loja: Ponto | null, maxM = 50000) =>
   Number.isFinite(p.lat) && Number.isFinite(p.lng) && Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180 && (!loja || distanciaM(p, loja) <= maxM);

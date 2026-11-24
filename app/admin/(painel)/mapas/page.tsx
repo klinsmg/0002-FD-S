@@ -1,4 +1,5 @@
 import { exigirAdmin } from '@/lib/admin';
+import { info } from '@/lib/info';
 import { salvarRestaurante } from '@/app/admin/(painel)/actions';
 import BotaoEnviar from '@/components/BotaoEnviar';
 import { configMapas } from '@/lib/mapas/config';
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 const SKU: Record<string, string> = { routes: 'Rotas (Routes API)', map_load: 'Carregamentos de mapa', map_tiles: 'Tiles do mapa (Map Tiles API)' };
 const PROV: Record<string, string> = { google: 'Google', osrm: 'OSRM (próprio)', estimativa: 'Estimativa local', proprio: 'Mapa próprio' };
-const MSG: Record<string, string> = { restaurante: 'Confira o nome e as coordenadas (as duas juntas, ex.: -23.5367 e -46.9342).', falha: 'Não foi possível salvar agora.' };
+const MSG: Record<string, string> = { restaurante: 'Confira o nome e as coordenadas (as duas juntas, ex.: -23.5367 e -46.9342).', endereco: 'Endereço não encontrado. Inclua rua, número, cidade e estado (ou o CEP) e tente de novo.', falha: 'Não foi possível salvar agora.' };
 const dia = (d: string) => new Date(d).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' });
 const pct = (u: number, c: number) => (c > 0 ? Math.round((u / c) * 1000) / 10 : 0);
 
@@ -52,7 +53,7 @@ export default async function Mapas({ searchParams }: { searchParams: Promise<{ 
       <header className="pg-cab wrap"><p className="script">painel</p><h1><em>Mapas</em> e rotas</h1></header>
       <div className="wrap conta-caixa">
         <nav className="conta-ancoras" aria-label="Seções"><a href="#infra">Infraestrutura</a><a href="#loja">Loja</a><a href="#google">Google</a><a href="#uso">Uso</a></nav>
-        {ok && <p className="nota" role="status">Salvo.</p>}
+        {ok && <p className="nota" role="status">{ok === 'aprox' ? 'Salvo, mas o ponto é aproximado (a rua não está no mapa do OpenStreetMap; usei o CEP ou a rua mais próxima). Confira no mapa e, se precisar, ajuste as coordenadas à mão.' : 'Salvo.'}</p>}
         {erro && MSG[erro] && <p className="nota" role="alert">{MSG[erro]}</p>}
 
         <section id="infra" aria-labelledby="t-infra">
@@ -72,10 +73,23 @@ export default async function Mapas({ searchParams }: { searchParams: Promise<{ 
               <input type="hidden" name="id" value={l.id} />
               <label htmlFor={`n-${l.id}`}>Nome</label>
               <input id={`n-${l.id}`} name="name" defaultValue={l.name} maxLength={80} required />
-              <label htmlFor={`la-${l.id}`}>Latitude da loja</label>
-              <input id={`la-${l.id}`} name="lat" inputMode="decimal" defaultValue={l.lat ?? ''} placeholder="-23.5367" />
-              <label htmlFor={`lo-${l.id}`}>Longitude da loja</label>
-              <input id={`lo-${l.id}`} name="lng" inputMode="decimal" defaultValue={l.lng ?? ''} placeholder="-46.9342" />
+              <label htmlFor={`e-${l.id}`}>Endereço da loja</label>
+              <input id={`e-${l.id}`} name="endereco" maxLength={200} autoComplete="street-address"
+                defaultValue={l.lat == null ? `${info.rua}, ${info.bairro}` : ''}
+                placeholder={l.lat == null ? 'Rua, número, bairro, cidade - UF, CEP' : 'Preencha só para mudar o ponto da loja'} />
+              <p className="nota">
+                {l.lat != null && l.lng != null
+                  ? <>Ponto atual: {l.lat.toFixed(5)}, {l.lng.toFixed(5)} · <a href={`https://www.openstreetmap.org/?mlat=${l.lat}&mlon=${l.lng}#map=18/${l.lat}/${l.lng}`} target="_blank" rel="noopener noreferrer">conferir no mapa</a></>
+                  : 'Ainda sem ponto: salve com o endereço e o sistema encontra a latitude e a longitude.'}
+              </p>
+              <details className="ped-coords">
+                <summary>Ajustar coordenadas à mão (se o ponto encontrado ficar longe da porta)</summary>
+                <label htmlFor={`la-${l.id}`}>Latitude</label>
+                <input id={`la-${l.id}`} name="lat" inputMode="decimal" defaultValue={l.lat ?? ''} placeholder="-23.5367" />
+                <label htmlFor={`lo-${l.id}`}>Longitude</label>
+                <input id={`lo-${l.id}`} name="lng" inputMode="decimal" defaultValue={l.lng ?? ''} placeholder="-46.9342" />
+                <p className="nota">Só valem com o campo de endereço vazio.</p>
+              </details>
               <p className="nota">O ponto da loja é a origem da rota inicial e o marcador 🌭 no mapa do cliente.</p>
               <label className="conta-check"><input type="checkbox" name="google" defaultChecked={l.google_maps_enabled} /> Usar o Google nesta loja (rota e mapa; só com GOOGLE_MAPS_ENABLED=true)</label>
               <label htmlFor={`pl-${l.id}`}>Plano</label>
