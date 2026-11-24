@@ -21,8 +21,8 @@ const ACAO: Partial<Record<Status, string>> = { preparing: 'Começar preparo', r
 const MSG: Record<string, string> = {
   fluxo: 'Esse pedido já mudou de etapa (outro aparelho?). O quadro foi atualizado.', invalido: 'Ação inválida.',
   entregador: 'Escolha um entregador ativo para o pedido sair.',
-  endereco: 'Não encontramos o endereço do pedido no mapa. Abra "Sem ponto no mapa?" no cartão e cole as coordenadas da casa (ex.: -23.5367, -46.9342).',
-  coords: 'Coordenadas inválidas ou longe da loja (mais de 50 km). Use o formato -23.5367, -46.9342.',
+  endereco: 'Não achamos esse endereço no mapa. No cartão, abra "Ponto da casa" e digite rua, número, bairro e cidade — ou cole as coordenadas do Google Maps (ex.: -23.5367, -46.9342).',
+  coords: 'Esse ponto fica a mais de 50 km da loja. Confira o endereço ou as coordenadas.',
 };
 const ETAPA: Record<string, string> = { assigned: 'saindo', en_route: 'a caminho', arriving: 'chegando', arrived: 'no local' };
 
@@ -104,13 +104,12 @@ export default async function Loja({ searchParams }: { searchParams: Promise<{ e
                               {ativos.map(c => <option key={c.user_id} value={c.user_id}>{c.name || c.email}{Number(c.open_deliveries) ? ` (${c.open_deliveries} em rota)` : ''}</option>)}
                             </select>
                             <BotaoEnviar pendente="Localizando endereço…" className="btn btn-p">Saiu para entrega</BotaoEnviar>
-                            {p.dest_source ? <p className="ped-st">Ponto no mapa: {p.dest_source === 'pino' ? 'confirmado pelo cliente' : 'sugerido pelo endereço'}.</p> : (
-                              <details className="ped-coords">
-                                <summary>Sem ponto no mapa?</summary>
-                                <label htmlFor={`co-${p.id}`}>Coordenadas da casa (opcional)</label>
-                                <input id={`co-${p.id}`} name="coords" inputMode="decimal" maxLength={40} placeholder="-23.5367, -46.9342" autoComplete="off" />
-                              </details>
-                            )}
+                            <details className="ped-coords" open={!p.dest_source}>
+                              <summary>{p.dest_source === 'pino' ? '📍 Ponto da casa: marcado pelo cliente' : p.dest_source ? '📍 Ponto da casa: pelo endereço (aproximado)' : '⚠️ Ponto da casa: o sistema vai procurar pelo endereço'} · corrigir</summary>
+                              <label htmlFor={`co-${p.id}`}>Endereço ou coordenadas (opcional)</label>
+                              <input id={`co-${p.id}`} name="coords" maxLength={200} autoComplete="off"
+                                placeholder="Rua, número, bairro, Itapevi — ou -23.5367, -46.9342" />
+                            </details>
                           </form>
                         ) : <p className="ped-st">Nenhum entregador liberado. <Link href="/admin/configuracoes#entregadores">Liberar em Configurações</Link>.</p>)}
                         {avancar.map(s => (

@@ -1,13 +1,13 @@
 import type { usuarioAtual } from '@/lib/supabase/server';
 import { contextoPedido } from '@/lib/gps';
-import { calcularRota, geocodificar, pontoValido, type ContextoPedido } from '@/lib/mapas/servico';
+import { calcularRota, geocodificar, geocodificarTexto, pontoValido, type ContextoPedido } from '@/lib/mapas/servico';
 import { lerCoords } from '@/lib/regras';
 
 type Sb = Awaited<ReturnType<typeof usuarioAtual>>['supabase'];
 export type Despacho = { ok: true; entrega: string; rotaInicial: () => Promise<void> } | { ok: false; erro: 'fluxo' | 'endereco' | 'coords' | 'entregador' };
 
 // Despacho (admin, cliente do usuário + RLS). Destino, em ordem:
-//   1) coordenadas coladas pela loja (exatas)  2) ponto do pedido: pino do cliente (exato) ou Nominatim (aproximado)
+//   1) o que a loja digitou: coordenadas (exatas) ou um endereço (procurado no mapa; aproximado se não achar a casa)  2) ponto do pedido: pino do cliente (exato) ou Nominatim (aproximado)
 //   3) Nominatim agora (exato só se achou o número)
 // Depois: rota inicial loja -> cliente (pode usar o Google: é o "início da entrega"), fora da resposta.
 export async function despachar(supabase: Sb, pedidoId: string, entregador: string, coordsTexto = ''): Promise<Despacho> {
@@ -21,8 +21,10 @@ export async function despachar(supabase: Sb, pedidoId: string, entregador: stri
   let destino: { lat: number; lng: number; aprox: boolean } | null = null;
   if (coordsTexto.trim()) {
     const c = lerCoords(coordsTexto);
-    if (!c || !pontoValido(c, loja)) return { ok: false, erro: 'coords' };
-    destino = { ...c, aprox: false };
+    const g = c ? { ...c, aproximado: false } : await geocodificarTexto(coordsTexto.trim());
+    if (!g) return { ok: false, erro: 'endereco' };
+    if (!pontoValido(g, loja)) return { ok: false, erro: 'coords' };
+    destino = { lat: g.lat, lng: g.lng, aprox: g.aproximado };
   } else if (p.dest_lat != null && p.dest_lng != null) {
     destino = { lat: p.dest_lat, lng: p.dest_lng, aprox: p.dest_source !== 'pino' };
   } else {

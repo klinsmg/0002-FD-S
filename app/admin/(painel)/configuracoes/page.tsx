@@ -1,13 +1,15 @@
 import Link from 'next/link';
-import { exigirAdmin } from '@/lib/admin';
-import { configurarEntrega, salvarEntregador, salvarHorarios } from '@/app/admin/(painel)/actions';
+import { ehDev, exigirAdmin } from '@/lib/admin';
+import { info } from '@/lib/info';
+import { configurarEntrega, salvarEnderecoLoja, salvarEntregador, salvarHorarios } from '@/app/admin/(painel)/actions';
 import BotaoEnviar from '@/components/BotaoEnviar';
 
 const MSG: Record<string, string> = {
   email: 'Digite um e-mail válido.', naoachou: 'Não há conta com esse e-mail. Peça para a pessoa entrar uma vez no site com o Google (em /entregador) e tente de novo.',
-  raio: 'Use um raio entre 20 e 300 m e uma precisão entre 10 e 100 m.', horario: 'Confira os horários: use o formato 18:00 e horários de abrir e fechar diferentes (ou marque Fechado).', falha: 'Não foi possível salvar. Tente novamente.',
+  raio: 'Use um raio entre 20 e 300 m e uma precisão entre 10 e 100 m.', lojaend: 'Endereço não encontrado no mapa. Inclua rua, número, cidade e o CEP — ou cole as coordenadas (ex.: -23.5367, -46.9342).', lojacoords: 'Coordenadas inválidas. Use o formato -23.5367, -46.9342.', horario: 'Confira os horários: use o formato 18:00 e horários de abrir e fechar diferentes (ou marque Fechado).', falha: 'Não foi possível salvar. Tente novamente.',
 };
-const OK: Record<string, string> = { liberado: 'Entregador liberado.', removido: 'Entregador desativado.', entrega: 'Regras da entrega salvas.', horarios: 'Horários salvos. O site já mostra o novo horário.' };
+const OK: Record<string, string> = { liberado: 'Entregador liberado.', removido: 'Entregador desativado.', entrega: 'Regras da entrega salvas.', horarios: 'Horários salvos. O site já mostra o novo horário.',
+  loja: 'Endereço da loja salvo. Confira o ponto no mapa.', lojaaprox: 'Salvo, mas o ponto é aproximado (a rua não está no mapa; usei o CEP ou a rua mais próxima). Confira no mapa e, se ficar longe da porta, cole as coordenadas.' };
 const DIAS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const hm = (t: string | null) => (t ?? '').slice(0, 5);
 
@@ -18,11 +20,13 @@ export const metadata = { title: 'Configurações' };
 export default async function ConfiguracoesAdmin({ searchParams }: { searchParams: Promise<{ ok?: string; erro?: string }> }) {
   const { ok, erro } = await searchParams;
   const { supabase, user } = await exigirAdmin();
-  const [{ data: fatores }, { data: entregadores }, { data: loja }, { data: horas }] = await Promise.all([
+  const dev = ehDev(user.email);
+  const [{ data: fatores }, { data: entregadores }, { data: loja }, { data: horas }, { data: ponto }] = await Promise.all([
     supabase.auth.mfa.listFactors(),
     supabase.rpc('admin_list_couriers'),
     supabase.from('store_settings').select('delivery_confirm_radius_m, gps_max_accuracy_m').maybeSingle(),
     supabase.from('business_hours').select('weekday, opens_at, closes_at, closed').order('weekday'),
+    supabase.from('restaurants').select('id, lat, lng').order('created_at').limit(1).maybeSingle(),
   ]);
   const totp = fatores?.totp.find(t => t.status === 'verified');
 
@@ -34,7 +38,7 @@ export default async function ConfiguracoesAdmin({ searchParams }: { searchParam
       </header>
       <div className="wrap conta-caixa">
         <nav className="conta-ancoras" aria-label="Seções">
-          <a href="#conta">Conta</a><a href="#seguranca">Segurança</a><a href="#horarios">Horários</a><a href="#entregadores">Entregadores</a><a href="#entrega">Regras da entrega</a>
+          <a href="#conta">Conta</a><a href="#seguranca">Segurança</a><a href="#horarios">Horários</a><a href="#endereco">Endereço da loja</a><a href="#entregadores">Entregadores</a>{dev && <a href="#entrega">Regras da entrega (Dev)</a>}
         </nav>
 
         <section id="conta" aria-labelledby="t-conta">
@@ -75,6 +79,25 @@ export default async function ConfiguracoesAdmin({ searchParams }: { searchParam
           </form>
         </section>
 
+        {ponto && (
+          <section id="endereco" aria-labelledby="t-end">
+            <h2 className="conta-tit" id="t-end">Endereço da loja</h2>
+            <p className="nota">É de onde sai a rota da entrega e o 🌭 no mapa do cliente. Digite o endereço e o sistema acha o ponto.</p>
+            {ponto.lat != null && ponto.lng != null ? (
+              <p className="nota">📍 Ponto salvo · <a href={`https://www.openstreetmap.org/?mlat=${ponto.lat}&mlon=${ponto.lng}#map=18/${ponto.lat}/${ponto.lng}`} target="_blank" rel="noopener noreferrer">ver no mapa</a></p>
+            ) : <p className="nota" role="note">⚠️ Ainda sem ponto. Confira o endereço abaixo e clique em Salvar.</p>}
+            <form className="form" action={salvarEnderecoLoja}>
+              <input type="hidden" name="id" value={ponto.id} />
+              <label htmlFor="loja-end">Endereço (ou coordenadas)</label>
+              <input id="loja-end" name="endereco" required maxLength={200} autoComplete="street-address"
+                defaultValue={ponto.lat == null ? `${info.rua}, ${info.bairro}` : ''}
+                placeholder="Rua, número, bairro, cidade - UF, CEP" />
+              <p className="nota">Ficou longe da porta? No Google Maps, clique com o botão direito na porta da loja, clique nos números que aparecem (copia) e cole aqui.</p>
+              <BotaoEnviar pendente="Procurando no mapa…">Salvar endereço</BotaoEnviar>
+            </form>
+          </section>
+        )}
+
         <section id="entregadores" aria-labelledby="t-ent">
           <h2 className="conta-tit" id="t-ent">Entregadores</h2>
           <p className="nota">O entregador entra em <b>/entregador</b> com a conta Google dele. Depois disso, digite o e-mail aqui para liberar.</p>
@@ -99,8 +122,8 @@ export default async function ConfiguracoesAdmin({ searchParams }: { searchParam
           </form>
         </section>
 
-        <section id="entrega" aria-labelledby="t-regras">
-          <h2 className="conta-tit" id="t-regras">Regras da entrega</h2>
+        {dev && <section id="entrega" aria-labelledby="t-regras">
+          <h2 className="conta-tit" id="t-regras">Regras da entrega <small>(Dev)</small></h2>
           <p className="nota">O botão &quot;Entregue&quot; do entregador só libera perto do endereço e com o GPS preciso. A loja não marca entrega como entregue.</p>
           <form className="form" action={configurarEntrega}>
             <label htmlFor="raio">Distância máxima do endereço (metros)</label>
@@ -109,7 +132,7 @@ export default async function ConfiguracoesAdmin({ searchParams }: { searchParam
             <input id="precisao" name="precisao" type="number" min={10} max={100} step={1} required defaultValue={loja?.gps_max_accuracy_m ?? 30} />
             <BotaoEnviar pendente="Salvando…">Salvar regras</BotaoEnviar>
           </form>
-        </section>
+        </section>}
       </div>
     </main>
   );

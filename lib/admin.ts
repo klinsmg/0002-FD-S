@@ -1,9 +1,10 @@
 import { cache } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { ehDev as ehDevRegra } from '@/lib/regras';
 
 // regras puras (fluxo de status, endereço, centavos) vivem em lib/regras.ts, testadas em tests/unit
-export { STATUS_LISTA, proximos, podeIr, enderecoTexto, paraCentavos, doisDec, type Status } from '@/lib/regras';
+export { ehDev, STATUS_LISTA, proximos, podeIr, enderecoTexto, paraCentavos, doisDec, type Status } from '@/lib/regras';
 export const PAGAMENTO: Record<string, string> = { cash: 'Dinheiro', pix: 'Pix', credit_card: 'Cartão de crédito', debit_card: 'Cartão de débito', other: 'Outro' };
 
 // Guarda do painel: só profiles.role = 'admin'. Chamada em TODA página e ação (o layout sozinho não basta, pois não roda
@@ -40,6 +41,13 @@ export const exigirAdmin = cache(async () => {
   const { supabase, user, aal } = await adminLogado();
   if (aal !== 'aal2') redirect(await destinoMfa(supabase));
   return { supabase, user };
+});
+
+// Área Dev: admin com 2FA E e-mail em ADMIN_DEV_EMAILS (lib/regras.ts: ehDev). Os outros admins recebem 404.
+export const exigirDev = cache(async () => {
+  const a = await exigirAdmin();
+  if (!ehDevRegra(a.user.email)) notFound();
+  return a;
 });
 
 // data de hoje no fuso de São Paulo (AAAA-MM-DD), o mesmo fuso das views de relatório

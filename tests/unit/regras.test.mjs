@@ -68,3 +68,12 @@ test('horários: junta dias seguidos iguais, como no site', () => {
   assert.deepEqual(agruparHorarios(comFolga), [['Segunda', 'Fechado'], ['Terça', '11h às 01h'], ['Quarta', '11h30 às 01h'], ['Quinta e sexta', '11h às 01h'], ['Sábado e domingo', '18h às 01h']]);
   assert.deepEqual(agruparHorarios([]), []);
 });
+
+test('área Dev: só os e-mails da lista; lista vazia = todo admin (ninguém trancado fora)', async () => {
+  const { ehDev } = await import('../../lib/regras.ts');
+  assert.equal(ehDev('dev@x.com', ' Dev@X.com , outro@y.com'), true);
+  assert.equal(ehDev('dono@loja.com', 'dev@x.com'), false);
+  assert.equal(ehDev(null, 'dev@x.com'), false);
+  assert.equal(ehDev('qualquer@a.com', ''), true);
+  assert.equal(ehDev('qualquer@a.com', ' , '), true);
+});

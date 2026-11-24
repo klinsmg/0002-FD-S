@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { exigirAdmin } from '@/lib/admin';
+import { exigirDev } from '@/lib/admin';
 import { limparGpsAntigo } from '@/app/admin/(painel)/actions';
 import Confirmar from '@/components/Confirmar';
 
@@ -25,7 +25,7 @@ const detalhe = (d: unknown) => {
 // Auditoria: o que aconteceu com cada pedido (linha do tempo gravada pelo banco) e as tentativas barradas pelos limites.
 export default async function Auditoria({ searchParams }: { searchParams: Promise<{ ok?: string }> }) {
   const { ok } = await searchParams;
-  const { supabase } = await exigirAdmin();
+  const { supabase } = await exigirDev();
   const [{ data: eventos }, { data: barradas }] = await Promise.all([
     supabase.from('order_events').select('id, type, data, created_at, orders(id, order_number)').order('created_at', { ascending: false }).limit(80),
     supabase.from('access_attempts').select('id, action, ip, device, user_id, created_at').eq('blocked', true).order('created_at', { ascending: false }).limit(50),

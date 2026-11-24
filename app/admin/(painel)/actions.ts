@@ -1,12 +1,13 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { PAGAMENTO, STATUS_LISTA, exigirAdmin, paraCentavos, podeIr, type Status } from '@/lib/admin';
+import { PAGAMENTO, STATUS_LISTA, exigirAdmin, exigirDev, paraCentavos, podeIr, type Status } from '@/lib/admin';
 import { limpa } from '@/lib/conta';
 import { after } from 'next/server';
 import { despachar } from '@/lib/despacho';
 import { dadosRestaurante } from '@/lib/api';
-import { geocodificarTexto } from '@/lib/mapas/servico';
+import { geocodificarTexto, pontoValido } from '@/lib/mapas/servico';
+import { lerCoords } from '@/lib/regras';
 import { PAGINAS_COM_HORARIO } from '@/lib/horarios';
 
 // Mutações do painel. Todas começam por exigirAdmin() e usam o cliente do USUÁRIO (RLS), nunca a service role.
@@ -171,7 +172,7 @@ export async function salvarEntregador(f: FormData) {
 
 // Raio de confirmação e precisão mínima do GPS
 export async function configurarEntrega(f: FormData) {
-  const { supabase } = await exigirAdmin();
+  const { supabase } = await exigirDev();
   const raio = Number(f.get('raio')), prec = Number(f.get('precisao'));
   if (!Number.isInteger(raio) || raio < 20 || raio > 300 || !Number.isInteger(prec) || prec < 10 || prec > 100) redirect('/admin/configuracoes?erro=raio#entrega');
   const { error } = await supabase.from('store_settings').update({ delivery_confirm_radius_m: raio, gps_max_accuracy_m: prec }).eq('id', true);
@@ -205,31 +206,37 @@ export async function salvarHorarios(f: FormData) {
 
 // LGPD: apaga as posições de GPS de entregas encerradas há mais de 30 dias (função do banco, só admin)
 export async function limparGpsAntigo() {
-  const { supabase } = await exigirAdmin();
+  const { supabase } = await exigirDev();
   const { data } = await supabase.rpc('purge_delivery_positions');
   atualizar('/admin/auditoria');
   redirect(`/admin/auditoria?ok=${Number(data ?? 0)}#privacidade`);
 }
 
-// ---------- mapas: restaurante (ponto da loja e regras do Google) ----------
-export async function salvarRestaurante(f: FormData) {
+// ---------- endereço da loja (Configurações, qualquer admin) ----------
+// Digite o endereço e o sistema acha o ponto; ou cole as coordenadas (botão direito no mapa > copiar: "-23.53, -46.93").
+export async function salvarEnderecoLoja(f: FormData) {
   const { supabase } = await exigirAdmin();
   const id = idDe(f);
-  // endereço preenchido = o sistema acha o ponto; vazio = mantém (ou usa o ajuste manual de coordenadas)
-  const endereco = String(f.get('endereco') ?? '').replace(/[\p{Cc}\p{Cf}]/gu, ' ').trim();
-  let lat = String(f.get('lat') ?? '').trim(), lng = String(f.get('lng') ?? '').trim(), aprox = false;
-  if (endereco) {
-    const p = await geocodificarTexto(endereco);
-    if (!p) redirect('/admin/mapas?erro=endereco#loja');
-    lat = String(p.lat); lng = String(p.lng); aprox = p.aproximado;
-  }
-  const d = dadosRestaurante({
-    name: f.get('name'), lat, lng,
-    google_maps_enabled: f.get('google') === 'on', plan: f.get('plan'), google_maps_percent: String(f.get('percent') ?? ''),
-  });
+  const texto = limpa(f.get('endereco'), 200);
+  if (!id || !texto) redirect('/admin/configuracoes?erro=lojaend#endereco');
+  const c = lerCoords(texto);
+  const p = c ? { ...c, aproximado: false } : await geocodificarTexto(texto);
+  if (!p || !pontoValido(p, null)) redirect(`/admin/configuracoes?erro=${c ? 'lojacoords' : 'lojaend'}#endereco`);
+  const { error } = await supabase.from('restaurants').update({ lat: p.lat, lng: p.lng }).eq('id', id);
+  if (error) redirect('/admin/configuracoes?erro=falha#endereco');
+  atualizar('/admin/configuracoes', '/admin/mapas');
+  redirect(`/admin/configuracoes?ok=${p.aproximado ? 'lojaaprox' : 'loja'}#endereco`);
+}
+
+// ---------- Dev · Mapas: nome da loja e regras do Google (o ponto fica em Configurações) ----------
+export async function salvarRestaurante(f: FormData) {
+  const { supabase } = await exigirDev();
+  const id = idDe(f);
+  const d = dadosRestaurante({ name: f.get('name'), google_maps_enabled: f.get('google') === 'on', plan: f.get('plan'), google_maps_percent: String(f.get('percent') ?? '') });
   if (!id || !d) redirect('/admin/mapas?erro=restaurante#loja');
-  const { error } = await supabase.from('restaurants').update(d).eq('id', id);
+  const { lat: _lat, lng: _lng, ...semPonto } = d; // não mexe no ponto da loja
+  const { error } = await supabase.from('restaurants').update(semPonto).eq('id', id);
   if (error) redirect('/admin/mapas?erro=falha#loja');
   atualizar('/admin/mapas');
-  redirect(`/admin/mapas?ok=${aprox ? 'aprox' : 'loja'}#loja`);
+  redirect('/admin/mapas?ok=loja#loja');
 }

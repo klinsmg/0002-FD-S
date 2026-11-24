@@ -153,3 +153,10 @@ export function lerCoords(v: string): { lat: number; lng: number } | null {
   const lat = Number(m[1]), lng = Number(m[2]);
   return Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat, lng } : null;
 }
+
+// Área Dev do painel (mapas, cota do Google, auditoria, regras técnicas da entrega): só os e-mails de ADMIN_DEV_EMAILS
+// (separados por vírgula). Sem a variável, todo admin é Dev — assim ninguém fica trancado fora antes de configurar.
+export function ehDev(email: string | null | undefined, lista = process.env.ADMIN_DEV_EMAILS ?? '') {
+  const devs = lista.split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+  return !devs.length || (!!email && devs.includes(email.trim().toLowerCase()));
+}
