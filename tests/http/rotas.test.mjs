@@ -162,3 +162,18 @@ test('CSP libera o WebSocket do Supabase Realtime (wss://), senão o "Ao vivo" n
   if (!https) return; // build sem NEXT_PUBLIC_SUPABASE_URL
   assert.ok(cc.includes(https.replace('https://', 'wss://')), cc);
 });
+
+test('SEO: canonical, sitemap e JSON-LD apontam para o mesmo domínio que responde; cardápio com Menu e preços', { skip: !online }, async () => {
+  const html = await (await get('/')).text();
+  const canon = html.match(/<link rel="canonical" href="([^"]+)"/)?.[1];
+  assert.ok(canon && !canon.includes('mdogao.com.br'), `canonical ${canon}`);
+  const base = new URL(canon).origin;
+  assert.match(await (await get('/sitemap.xml')).text(), new RegExp(`<loc>${base}/cardapio</loc>`));
+  assert.match(await (await get('/robots.txt')).text(), new RegExp(`Sitemap: ${base}/sitemap.xml`));
+  const ld = JSON.parse(html.match(/<script type="application\/ld\+json">(.+?)<\/script>/)[1]);
+  const r = ld['@graph'].find(x => x['@id']?.endsWith('#restaurante'));
+  assert.equal(r.url, base); assert.ok(r.openingHoursSpecification.length > 0); assert.equal(r.hasMenu, `${base}/cardapio`);
+  const menu = JSON.parse((await (await get('/cardapio')).text()).match(/<script type="application\/ld\+json">(\{"@context":"https:\/\/schema.org","@type":"Menu".+?)<\/script>/)[1]);
+  const itens = menu.hasMenuSection.flatMap(s => s.hasMenuItem);
+  assert.ok(itens.length > 50 && itens.some(i => i.offers?.[0]?.priceCurrency === 'BRL'));
+});

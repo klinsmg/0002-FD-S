@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import LimparCarrinho from '@/components/LimparCarrinho';
 import { usuarioAtual } from '@/lib/supabase/server';
 import AoVivo from '@/components/AoVivo';
+import AvisoEtapa from '@/components/AvisoEtapa';
 import MapaRastreio from '@/components/MapaRastreio';
 import ConviteAvaliacao from '@/components/ConviteAvaliacao';
 import { avaliarNoGoogle } from '@/lib/info';
@@ -72,6 +73,7 @@ export default async function Pedido({ params }: { params: Promise<{ id: string 
             <ol>{eventos.filter(e => EVENTO[e.type]).map(e => <li key={e.id}><time dateTime={e.created_at}>{hora(e.created_at)}</time> {EVENTO[e.type]}</li>)}</ol>
           </details>
         )}
+        <AvisoEtapa etapa={STATUS[p.status] ?? p.status} />
         {!encerrado && <p className="nota"><AoVivo topico={`pedido:${p.id}`} /> Cada mudança no pedido aparece aqui na hora, sem recarregar.</p>}
         <ul className="canais">
           {p.order_items.map(i => (

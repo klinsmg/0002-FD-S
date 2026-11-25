@@ -160,3 +160,16 @@ export function ehDev(email: string | null | undefined, lista = process.env.ADMI
   const devs = lista.split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
   return !devs.length || (!!email && devs.includes(email.trim().toLowerCase()));
 }
+
+// ---------- SEO: horário do banco no formato schema.org (OpeningHoursSpecification) ----------
+// Dias com o mesmo horário viram uma linha; fechado não entra (schema.org: ausência = fechado).
+const DIAS_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+export function horariosSchema(linhas: Horario[]) {
+  const grupos = new Map<string, string[]>();
+  for (const l of [...linhas].sort((a, b) => ((a.weekday + 6) % 7) - ((b.weekday + 6) % 7))) {
+    if (l.closed || !l.opens_at || !l.closes_at) continue;
+    const k = `${l.opens_at.slice(0, 5)}|${l.closes_at.slice(0, 5)}`;
+    grupos.set(k, [...(grupos.get(k) ?? []), DIAS_EN[l.weekday]]);
+  }
+  return [...grupos].map(([k, dias]) => { const [opens, closes] = k.split('|'); return { '@type': 'OpeningHoursSpecification', dayOfWeek: dias, opens, closes }; });
+}

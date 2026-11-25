@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { cats, pais, variantes, molhos, PONTOS, SEM } from '@/lib/menu';
 import { ALT } from '@/lib/alt';
 import { A } from '@/lib/alp';
+import { cardapioLd, json } from '@/lib/seo';
 
 export const metadata = {
   title: 'Cardápio da Lanchonete em Itapevi',
@@ -84,6 +85,8 @@ const campoEnd = (foco?: string) => (
 
 export default function Cardapio() {
   return (
+    <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: json(cardapioLd()) }} />
     <main
       x-data={`carrinho(${q({ ids, paiDaSub, molhos: molhos.map(m => ({ n: m.n, p: variantes(m)[0].p, t: variantes(m)[0].t })) })})`}
       {...A({ 'x-on:hashchange.window': 'hash()', 'x-on:keydown.escape.window': "open=false; passo=''; opc=null" })}
@@ -359,5 +362,6 @@ export default function Cardapio() {
         </footer>
       </aside>
     </main>
+    </>
   );
 }

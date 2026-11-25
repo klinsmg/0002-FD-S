@@ -77,3 +77,13 @@ test('área Dev: só os e-mails da lista; lista vazia = todo admin (ninguém tra
   assert.equal(ehDev('qualquer@a.com', ''), true);
   assert.equal(ehDev('qualquer@a.com', ' , '), true);
 });
+
+test('SEO: horário do banco vira OpeningHoursSpecification agrupado; fechado fica de fora', async () => {
+  const { horariosSchema } = await import('../../lib/regras.ts');
+  const h = (weekday, o, c, closed = false) => ({ weekday, opens_at: o, closes_at: c, closed });
+  const r = horariosSchema([h(1, '11:00:00', '01:00:00'), h(2, '11:00:00', '01:00:00'), h(6, '18:00:00', '01:00:00'), h(0, '18:00:00', '01:00:00'), h(3, null, null, true)]);
+  assert.deepEqual(r, [
+    { '@type': 'OpeningHoursSpecification', dayOfWeek: ['Monday', 'Tuesday'], opens: '11:00', closes: '01:00' },
+    { '@type': 'OpeningHoursSpecification', dayOfWeek: ['Saturday', 'Sunday'], opens: '18:00', closes: '01:00' },
+  ]);
+});

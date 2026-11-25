@@ -1,6 +1,8 @@
 // Dados do cliente (fonte: pasta Clients/Marcio Dogão Itapevi). Mudou o telefone, endereço ou horário? É só aqui.
 // Endereço público do site. Usado em sitemap, robots, llms.txt e metadados.
-export const site = 'https://mdogao.com.br';
+// SITE_URL (ex.: https://mdogao.com.br) quando o domínio próprio estiver ligado na Vercel; até lá, o endereço de produção
+// da Vercel. Canonical, sitemap, robots e Open Graph apontam para cá: domínio que não abre derruba a indexação.
+export const site = (process.env.SITE_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : 'https://mdogao.vercel.app')).replace(/\/+$/, '');
 
 export const info = {
   nome: 'MDogão Itapevi',

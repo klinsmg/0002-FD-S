@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 const CHAVE_SOM = 'loja-som';
 
 // Alerta de pedido novo no quadro da loja: quando chega um pedido "Novo" que ainda não estava na tela, toca um bipe
-// (se o som estiver ligado), vibra no celular, pisca o título da aba e mostra um aviso.
+// (se o som estiver ligado), vibra no celular, pisca o título da aba, mostra um aviso (e uma notificação do sistema com a
+// aba em segundo plano) e mantém a tela acesa enquanto o quadro está aberto.
 export default function AlertaPedidos({ novos }: { novos: { id: string; n: number }[] }) {
   const vistos = useRef<Set<string> | null>(null);
   const audio = useRef<AudioContext | null>(null);
@@ -24,6 +25,10 @@ export default function AlertaPedidos({ novos }: { novos: { id: string; n: numbe
     setAviso(a => [...a, ...chegaram.map(p => p.n)]);
     navigator.vibrate?.([200, 100, 200]);
     if (som) bipe();
+    // aba em segundo plano (outra tela aberta no tablet/PC): aviso do sistema, se a loja permitiu ao ligar o som
+    if (document.visibilityState === 'hidden' && 'Notification' in window && Notification.permission === 'granted') {
+      try { new Notification('Novo pedido!', { body: chegaram.map(p => `#${p.n}`).join(', '), tag: 'pedido-novo' }); } catch {}
+    }
   }, [novos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // título da aba pisca enquanto houver aviso não visto
@@ -52,8 +57,23 @@ export default function AlertaPedidos({ novos }: { novos: { id: string; n: numbe
     const novo = !som;
     setSom(novo);
     try { localStorage.setItem(CHAVE_SOM, novo ? '1' : '0'); } catch {}
-    if (novo) { audio.current ??= new AudioContext(); void audio.current.resume(); bipe(); }
+    if (novo) {
+      audio.current ??= new AudioContext(); void audio.current.resume(); bipe();
+      if ('Notification' in window && Notification.permission === 'default') void Notification.requestPermission().catch(() => {});
+    }
   }
+
+  // quadro aberto = tela do tablet não apaga (senão o bipe/aviso passa despercebido); volta a valer ao reabrir a aba
+  useEffect(() => {
+    type Trava = { release(): Promise<void> };
+    const wl = (navigator as Navigator & { wakeLock?: { request(t: 'screen'): Promise<Trava> } }).wakeLock;
+    if (!wl) return;
+    let trava: Trava | null = null;
+    const pedir = () => { if (document.visibilityState === 'visible') wl.request('screen').then(t => { trava = t; }).catch(() => {}); };
+    pedir();
+    document.addEventListener('visibilitychange', pedir);
+    return () => { document.removeEventListener('visibilitychange', pedir); void trava?.release().catch(() => {}); };
+  }, []);
 
   // som salvo como ligado: o primeiro clique em qualquer lugar da página destrava o áudio
   useEffect(() => {
