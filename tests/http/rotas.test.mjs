@@ -155,3 +155,10 @@ test('nenhum segredo/chave em NENHUM JS do build (inclusive os carregados sob de
     assert.doesNotMatch(js, /AIza[0-9A-Za-z_-]{35}|sb_secret_|service_role|GOOGLE_MAPS_API_KEY|MAPAS_TOKEN|MAPAS_HMAC_SECRET|CRON_SECRET/, String(f));
   }
 });
+
+test('CSP libera o WebSocket do Supabase Realtime (wss://), senão o "Ao vivo" nunca conecta', { skip: !online }, async () => {
+  const cc = ((await get('/')).headers.get('content-security-policy') ?? '').split(';').find(x => x.trim().startsWith('connect-src')) ?? '';
+  const https = cc.match(/https:\/\/[a-z0-9]+\.supabase\.co/)?.[0];
+  if (!https) return; // build sem NEXT_PUBLIC_SUPABASE_URL
+  assert.ok(cc.includes(https.replace('https://', 'wss://')), cc);
+});

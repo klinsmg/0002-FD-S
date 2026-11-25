@@ -22,7 +22,8 @@ const csp = [
   "img-src 'self' data: blob:",
   "media-src 'self'",
   "font-src 'self' data: https://fonts.gstatic.com",
-  `connect-src 'self' https://viacep.com.br${supabase ? ` ${supabase}` : ''}${mapas ? ` ${mapas}` : ''} data: blob:`,
+  // wss:// explícito: o Chrome não libera o WebSocket do Realtime só com a origem https:// (o selo "Ao vivo" ficava em "Reconectando…")
+  `connect-src 'self' https://viacep.com.br${supabase ? ` ${supabase} ${supabase.replace('https://', 'wss://')}` : ''}${mapas ? ` ${mapas}` : ''} data: blob:`,
   "frame-src https://www.google.com",
   "worker-src blob:",
   "manifest-src 'self'",
