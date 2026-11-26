@@ -11,13 +11,13 @@ test('fluxo: Novo -> Em preparo -> Pronto, cancelar sempre que aberto', () => {
   assert.ok(!podeIr('preparing', 'pending', 'pickup'), 'não volta');
 });
 
-test('fluxo: entrega Pronto -> Saiu para entrega -> Entregue; retirada Pronto -> Retirado', () => {
+test('fluxo: retirada fecha com Retirado; entrega sai pelo despacho e o Entregue é baixa do entregador', () => {
   assert.deepEqual(proximos('ready', 'pickup'), ['delivered', 'cancelled']);
-  assert.deepEqual(proximos('ready', 'delivery'), ['out_for_delivery', 'cancelled']);
-  assert.deepEqual(proximos('out_for_delivery', 'delivery'), ['delivered', 'cancelled']);
-  assert.ok(!podeIr('ready', 'delivered', 'delivery'), 'entrega não pula a saída');
-  assert.ok(!podeIr('ready', 'out_for_delivery', 'pickup'), 'retirada não sai para entrega');
-  assert.ok(!podeIr('out_for_delivery', 'ready', 'delivery'), 'não volta');
+  assert.deepEqual(proximos('ready', 'delivery'), ['cancelled'], 'saída só pelo despacho (com entregador)');
+  assert.deepEqual(proximos('out_for_delivery', 'delivery'), ['cancelled'], 'entregue só pela baixa do entregador');
+  assert.ok(!podeIr('ready', 'out_for_delivery', 'delivery'));
+  assert.ok(!podeIr('out_for_delivery', 'delivered', 'delivery'));
+  assert.ok(!podeIr('ready', 'out_for_delivery', 'pickup'));
 });
 
 test('fluxo: status finais não andam', () => {

@@ -100,6 +100,12 @@ const secoes: Secao[] = [
     ],
   },
   {
+    id: 'entregadores', titulo: 'Entregadores',
+    blocos: [
+      'Quem faz entregas para a loja entra no app do entregador (/entregador) com a conta Google. Guardamos o nome, o e-mail, as entregas que a loja mandou para a pessoa e a data e hora da baixa de cada uma, para organizar as entregas e resolver dúvidas sobre pedidos. **Não coletamos a localização** do entregador. O entregador pode pedir acesso, correção ou eliminação dos dados pelo e-mail da seção de contato.',
+    ],
+  },
+  {
     id: 'criancas', titulo: 'Crianças e adolescentes',
     blocos: [
       'O site não é direcionado a menores de 18 anos. Pedidos devem ser feitos por maiores de idade ou com a participação de um responsável. Se identificarmos dados de uma criança enviados sem a autorização de um responsável, vamos apagá-los.',

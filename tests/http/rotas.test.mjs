@@ -17,7 +17,7 @@ async function redirecionaPara(p, destino) {
 }
 
 test('páginas públicas respondem 200', { skip: !online && 'servidor local fora do ar' }, async t => {
-  for (const p of ['/', '/cardapio', '/contato', '/login', '/admin/login', '/politica-de-privacidade', '/termos-de-uso', '/politica-de-cookies', '/llms.txt', '/robots.txt', '/sitemap.xml']) {
+  for (const p of ['/', '/cardapio', '/contato', '/login', '/entregador', '/entregador.webmanifest', '/admin/login', '/politica-de-privacidade', '/termos-de-uso', '/politica-de-cookies', '/llms.txt', '/robots.txt', '/sitemap.xml']) {
     await t.test(p, async () => assert.equal((await get(p)).status, 200));
   }
 });
@@ -33,6 +33,7 @@ test('áreas logadas mandam para o login (sem vazar conteúdo)', { skip: !online
   await redirecionaPara('/admin/configuracoes', '/admin/login');
   await redirecionaPara('/admin/auditoria', '/admin/login');
   await redirecionaPara(`/admin/imprimir/${UUID0}`, '/admin/login');
+  await redirecionaPara(`/entregador/${UUID0}`, '/entregador');
 });
 
 test('APIs para visitante', { skip: !online }, async () => {
@@ -69,9 +70,9 @@ test('nenhum segredo nos arquivos JS entregues ao navegador', { skip: !online },
   }
 });
 
-// ---------- rastreamento removido (022): app do entregador, GPS, mapas e REST de pedidos não existem mais ----------
+// ---------- rastreamento removido (022): GPS, mapas e REST de pedidos não existem mais (a entrega com entregador continua) ----------
 test('rotas do rastreamento removidas respondem 404', { skip: !online }, async () => {
-  for (const p of ['/entregador', `/entregador/${UUID0}`, '/api/maps/base', '/api/maps/config', `/api/entregas/${UUID0}/posicao`, '/api/courier/location', `/api/orders/${UUID0}`, `/api/orders/${UUID0}/tracking`, '/api/cron/mapas', '/api/admin/google-teste', '/entregador.webmanifest']) {
+  for (const p of ['/api/maps/base', '/api/maps/config', `/api/entregas/${UUID0}/posicao`, '/api/courier/location', `/api/orders/${UUID0}`, `/api/orders/${UUID0}/tracking`, '/api/cron/mapas', '/api/admin/google-teste']) {
     assert.equal((await get(p)).status, 404, p);
   }
 });

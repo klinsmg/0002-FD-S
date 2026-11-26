@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { exigirAdmin } from '@/lib/admin';
-import { salvarHorarios } from '@/app/admin/(painel)/actions';
+import { salvarEntregador, salvarHorarios } from '@/app/admin/(painel)/actions';
 import BotaoEnviar from '@/components/BotaoEnviar';
 
 const MSG: Record<string, string> = {
+  email: 'Digite um e-mail válido.', naoachou: 'Não há conta com esse e-mail. Peça para a pessoa entrar uma vez no site com o Google (em /entregador) e tente de novo.',
   horario: 'Confira os horários: use o formato 18:00 e horários de abrir e fechar diferentes (ou marque Fechado).', falha: 'Não foi possível salvar. Tente novamente.',
 };
-const OK: Record<string, string> = { horarios: 'Horários salvos. O site já mostra o novo horário.' };
+const OK: Record<string, string> = { liberado: 'Entregador liberado.', removido: 'Entregador desativado.', horarios: 'Horários salvos. O site já mostra o novo horário.' };
 const DIAS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const hm = (t: string | null) => (t ?? '').slice(0, 5);
 
@@ -17,9 +18,10 @@ export const metadata = { title: 'Configurações' };
 export default async function ConfiguracoesAdmin({ searchParams }: { searchParams: Promise<{ ok?: string; erro?: string }> }) {
   const { ok, erro } = await searchParams;
   const { supabase, user } = await exigirAdmin();
-  const [{ data: fatores }, { data: horas }] = await Promise.all([
+  const [{ data: fatores }, { data: horas }, { data: entregadores }] = await Promise.all([
     supabase.auth.mfa.listFactors(),
     supabase.from('business_hours').select('weekday, opens_at, closes_at, closed').order('weekday'),
+    supabase.rpc('admin_list_couriers'),
   ]);
   const totp = fatores?.totp.find(t => t.status === 'verified');
 
@@ -31,7 +33,7 @@ export default async function ConfiguracoesAdmin({ searchParams }: { searchParam
       </header>
       <div className="wrap conta-caixa">
         <nav className="conta-ancoras" aria-label="Seções">
-          <a href="#conta">Conta</a><a href="#seguranca">Segurança</a><a href="#horarios">Horários</a>
+          <a href="#conta">Conta</a><a href="#seguranca">Segurança</a><a href="#horarios">Horários</a><a href="#entregadores">Entregadores</a>
         </nav>
 
         <section id="conta" aria-labelledby="t-conta">
@@ -69,6 +71,29 @@ export default async function ConfiguracoesAdmin({ searchParams }: { searchParam
               </fieldset>
             ); })}
             <BotaoEnviar pendente="Salvando…">Salvar horários</BotaoEnviar>
+          </form>
+        </section>
+        <section id="entregadores" aria-labelledby="t-ent">
+          <h2 className="conta-tit" id="t-ent">Entregadores</h2>
+          <p className="nota">O entregador entra em <b>/entregador</b> com a conta Google dele. Depois disso, digite o e-mail aqui para liberar. No quadro da loja, &quot;Saiu para entrega&quot; manda o pedido para ele, e ele dá baixa quando entregar.</p>
+          {entregadores?.length ? (
+            <ul className="canais">
+              {entregadores.map(c => (
+                <li key={c.user_id}>
+                  <b>{c.name || 'Sem nome'}{c.active ? '' : ' (desativado)'}</b>
+                  <span>{c.email}{Number(c.open_deliveries) ? ` · ${c.open_deliveries} em rota` : ''}</span>
+                  <form action={salvarEntregador}>
+                    <input type="hidden" name="email" value={c.email ?? ''} /><input type="hidden" name="ativo" value={c.active ? '0' : '1'} />
+                    <BotaoEnviar pendente="…" className="btn btn-o">{c.active ? 'Desativar' : 'Reativar'}</BotaoEnviar>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="nota">Nenhum entregador ainda.</p>}
+          <form className="form" action={salvarEntregador}>
+            <label htmlFor="ent-email">E-mail da conta Google do entregador</label>
+            <input id="ent-email" name="email" type="email" required maxLength={254} autoComplete="off" placeholder="nome@gmail.com" />
+            <BotaoEnviar pendente="Liberando…">Liberar entregador</BotaoEnviar>
           </form>
         </section>
       </div>

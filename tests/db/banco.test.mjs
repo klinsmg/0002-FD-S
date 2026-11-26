@@ -353,15 +353,13 @@ console.log('16) Fluxo de status (012)');
   const addr = { street: 'Rua A', number: '1', district: 'Centro', city: 'Itapevi', state: 'SP', zip_code: '06653000' };
   const ent = (await ped([{ product_id: agua.id, quantity: 1 }], { tipo: 'delivery', addr }))[0].r_order_id;
   const ret = (await ped([{ product_id: agua.id, quantity: 1 }]))[0].r_order_id;
-  const ent2 = (await ped([{ product_id: agua.id, quantity: 1 }], { tipo: 'delivery', addr }))[0].r_order_id;
   await como('authenticated', ADM);
   const vai = async (id, st) => !(await erro(() => q(`update public.orders set status=$2 where id=$1`, [id, st])));
   check('entrega: Novo -> Pronto (pular preparo) recusado', !(await vai(ent, 'ready')));
   check('entrega: Novo -> Entregue recusado', !(await vai(ent, 'delivered')));
   check('entrega: Novo -> Em preparo -> Pronto', (await vai(ent, 'preparing')) && (await vai(ent, 'ready')));
   check('entrega: Pronto -> Entregue pelo painel recusado', !(await vai(ent, 'delivered')));
-  check('entrega: Pronto -> Saiu para entrega', await vai(ent, 'out_for_delivery'));
-  check('entrega: Saiu para entrega -> voltar para Pronto recusado', !(await vai(ent, 'ready')));
+  check('entrega: Pronto -> Saiu para entrega direto pela API recusado (só escolhendo entregador)', !(await vai(ent, 'out_for_delivery')));
   check('entrega: voltar para Em preparo recusado', !(await vai(ent, 'preparing')));
   check('retirada: Pronto -> Saiu para entrega recusado', (await vai(ret, 'preparing')) && (await vai(ret, 'ready')) && !(await vai(ret, 'out_for_delivery')));
   check('retirada: Pronto -> Entregue (Retirado)', await vai(ret, 'delivered'));
@@ -369,10 +367,8 @@ console.log('16) Fluxo de status (012)');
   check('cancelar pedido aberto', await vai(ent, 'cancelled'));
   check('cancelado é final', !(await vai(ent, 'pending')));
   check('status inexistente recusado', !(await vai(ret, 'voando')));
-  check('entrega completa: Em preparo -> Pronto -> Saiu para entrega -> Entregue', (await vai(ent2, 'preparing')) && (await vai(ent2, 'ready')) && (await vai(ent2, 'out_for_delivery')) && (await vai(ent2, 'delivered')));
-  check('entrega entregue é final', !(await vai(ent2, 'cancelled')));
   await su();
-  check('postgres/definer passa (importação e manutenção)', !(await erro(() => q(`update public.orders set status='delivered' where id=$1`, [ent]))));
+  check('postgres/definer passa (baixa do entregador)', !(await erro(() => q(`update public.orders set status='delivered' where id=$1`, [ent]))));
 }
 console.log('17) Tempo real (013)');
 {
@@ -434,10 +430,81 @@ console.log('18) Tentativas e bloqueio (014)');
   check('depois de 15 min o bloqueio cai', (await ac('pedido', '10.0.0.1', D1, Z)) === true);
   await su();
 }
-console.log('19) Fluxos ponta a ponta (cliente -> loja -> entrega -> pagamento -> relatório)');
+console.log('18b) Entregas com entregador, sem rastreamento (015 + 022)');
 {
   await su();
-  const CL = P(81);
+  const K = P(60), K2 = P(61), CL = P(62), OUT = P(63);
+  await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1,'moto@x.com','{"full_name":"Moto"}'),($2,'moto2@x.com','{"full_name":"Moto2"}')`, [K, K2]);
+  await mk(CL, { full_name: 'Cliente Entrega' }); await mk(OUT, { full_name: 'Outro' });
+  const addr = { street: 'Rua B', number: '2', district: 'Centro', city: 'Itapevi', state: 'SP', zip_code: '06653000' };
+  const novo = async () => { await como('authenticated', CL); const id = (await ped([{ product_id: agua.id, quantity: 1 }], { tipo: 'delivery', addr }))[0].r_order_id; await como('authenticated', ADM); return id; };
+  const pronto = async id => { await q(`update public.orders set status='preparing' where id=$1`, [id]); await q(`update public.orders set status='ready' where id=$1`, [id]); };
+  const pid = await novo();
+  await como('authenticated', K);
+  check('não-admin NÃO libera entregador', !!(await erro(() => q(`select public.admin_set_courier('moto@x.com', true)`))));
+  check('não-admin NÃO despacha', !!(await erro(() => q('select public.dispatch_order($1,$2)', [pid, K]))));
+  await como('authenticated', ADM);
+  check('admin libera entregador pelo e-mail', (await q(`select public.admin_set_courier('MOTO@x.com', true) id`))[0].id === K);
+  await q(`select public.admin_set_courier('moto2@x.com', true)`);
+  check('e-mail inexistente avisa', /user_not_found/.test((await erro(() => q(`select public.admin_set_courier('nada@x.com', true)`))) ?? ''));
+  check('lista de entregadores', (await q('select * from public.admin_list_couriers()')).length === 2);
+  check('saiu para entrega exige pedido Pronto', /order_not_ready/.test((await erro(() => q('select public.dispatch_order($1,$2)', [pid, K]))) ?? ''));
+  await pronto(pid);
+  check('loja NÃO pula o despacho (Pronto -> Saiu direto pela API)', !!(await erro(() => q(`update public.orders set status='out_for_delivery' where id=$1`, [pid]))));
+  const did = (await q('select public.dispatch_order($1,$2) id', [pid, K]))[0].id;
+  check('despacho: pedido vira "Saiu para entrega" e cria a entrega', (await q('select status from public.orders where id=$1', [pid]))[0].status === 'out_for_delivery' && !!did);
+  check('não dá para despachar duas vezes', !!(await erro(() => q('select public.dispatch_order($1,$2)', [pid, K]))));
+  check('loja NÃO marca Entregue pela API (a baixa é do entregador)', !!(await erro(() => q(`update public.orders set status='delivered' where id=$1`, [pid]))));
+  const baixa = () => q('select public.courier_confirm_delivery($1) r', [did]).then(r => r[0].r);
+  await como('authenticated', K2);
+  check('outro entregador NÃO dá baixa', (await baixa()) === 'not_assigned');
+  check('outro entregador NÃO devolve', (await q(`select public.courier_return_delivery($1,'outro') r`, [did]))[0].r === 'not_assigned');
+  check('outro entregador NÃO vê a entrega nem o pedido', (await n('select count(*) n from public.deliveries')) === 0 && (await n('select count(*) n from public.orders')) === 0);
+  await como('authenticated', CL);
+  check('cliente NÃO dá baixa nem lê entregas', (await baixa()) === 'not_assigned' && (await n('select count(*) n from public.deliveries')) === 0);
+  await como('authenticated', K);
+  check('entregador vê a entrega e o pedido dela', (await n('select count(*) n from public.deliveries')) === 1 && (await n('select count(*) n from public.orders')) === 1);
+  check('entregador NÃO muda o pedido direto', (await afet(`update public.orders set status='delivered' where id=$1`, [pid])) === 0);
+  check('entregador dá baixa', (await baixa()) === 'delivered');
+  check('baixa só uma vez', (await baixa()) === 'not_assigned');
+  await su();
+  check('pedido Entregue e entrega encerrada com hora', (await q('select status from public.orders where id=$1', [pid]))[0].status === 'delivered' && !!(await q('select finished_at from public.deliveries where id=$1', [did]))[0].finished_at);
+  await como('authenticated', CL);
+  check('cliente lê a linha do tempo do próprio pedido', (await n('select count(*) n from public.order_events where order_id=$1', [pid])) === 6);
+  await como('authenticated', OUT);
+  check('outro cliente NÃO lê', (await n('select count(*) n from public.order_events where order_id=$1', [pid])) === 0);
+  // recusa e "não consegui entregar": o pedido volta para Pronto com o motivo
+  const p2 = await novo(); await pronto(p2);
+  const d2 = (await q('select public.dispatch_order($1,$2) id', [p2, K]))[0].id;
+  await como('authenticated', K);
+  check('motivo inválido recusado', (await q(`select public.courier_return_delivery($1,'preguica') r`, [d2]))[0].r === 'invalid_reason');
+  check('entregador recusa', (await q(`select public.courier_return_delivery($1,'recusada') r`, [d2]))[0].r === 'ok');
+  await su();
+  check('recusa: pedido volta para Pronto e a entrega é cancelada', (await q('select status from public.orders where id=$1', [p2]))[0].status === 'ready' && (await q('select status from public.deliveries where id=$1', [d2]))[0].status === 'cancelled');
+  await como('authenticated', ADM);
+  const d3 = (await q('select public.dispatch_order($1,$2) id', [p2, K2]))[0].id;
+  await como('authenticated', K2);
+  check('outro entregador devolve (cliente ausente)', (await q(`select public.courier_return_delivery($1,'cliente_ausente') r`, [d3]))[0].r === 'ok');
+  await su();
+  const ev2 = (await q(`select data from public.order_events where order_id=$1 and type='FALHA_NA_ENTREGA'`, [p2]))[0];
+  check('não entregue: motivo na linha do tempo', ev2?.data?.motivo === 'cliente_ausente' && (await q('select status from public.deliveries where id=$1', [d3]))[0].status === 'failed');
+  // entregador inativo não recebe; cancelar encerra a entrega
+  await como('authenticated', ADM);
+  await q(`select public.admin_set_courier('moto@x.com', false)`);
+  check('entregador inativo não recebe entrega', /courier_not_found/.test((await erro(() => q('select public.dispatch_order($1,$2)', [p2, K]))) ?? ''));
+  await q('select public.dispatch_order($1,$2)', [p2, K2]);
+  await q(`update public.orders set status='cancelled' where id=$1`, [p2]);
+  await su();
+  check('pedido cancelado encerra a entrega', (await n(`select count(*) n from public.deliveries where order_id=$1 and status='assigned'`, [p2])) === 0);
+  await como('authenticated', K);
+  check('entregador desativado perde acesso', (await n('select count(*) n from public.deliveries')) === 0);
+  await su();
+}
+console.log('19) Fluxos ponta a ponta (cliente -> loja -> entregador dá baixa -> pagamento -> relatório)');
+{
+  await su();
+  const K = P(80), CL = P(81);
+  await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1,'e2e-moto@x.com','{"full_name":"Moto E2E"}')`, [K]);
   await mk(CL, { full_name: 'Cliente E2E' });
   const receita = async () => { await como('authenticated', ADM); const v = Number((await q(`select coalesce(sum(revenue_cents),0)::int v from public.sales_summary`))[0].v); await su(); return v; };
   const antes = await receita();
@@ -447,23 +514,25 @@ console.log('19) Fluxos ponta a ponta (cliente -> loja -> entrega -> pagamento -
   const r = (await ped([{ product_id: xb.id, quantity: 2, doneness: 'medium' }, { product_id: agua.id, quantity: 1 }], { tipo: 'delivery', addr, nome: 'Cliente E2E' }))[0];
   check('E2E 1: pedido criado como Novo com total do banco (2 X-Burguer + água = R$ 51)', r.r_total_cents === 5100, JSON.stringify(r));
   const pid = r.r_order_id;
-  // 2. loja aceita, prepara, define pagamento e taxa
+  // 2. loja aceita, prepara, define pagamento
   await como('authenticated', ADM);
   await q(`update public.orders set status='preparing', payment_method='pix' where id=$1`, [pid]);
   check('E2E 2: taxa só enquanto aberto (em preparo já não muda)', !!(await erro(() => q('select * from public.admin_set_order_amounts($1,700,0)', [pid]))));
   await q(`update public.orders set status='ready' where id=$1`, [pid]);
-  // 3. loja marca Saiu para entrega e depois Entregue
-  check('E2E 3: Pronto -> Saiu para entrega', !(await erro(() => q(`update public.orders set status='out_for_delivery' where id=$1`, [pid]))));
-  check('E2E 4: Saiu para entrega -> Entregue', !(await erro(() => q(`update public.orders set status='delivered' where id=$1`, [pid]))));
-  await como('authenticated', CL);
-  check('E2E 5: o cliente vê o pedido Entregue', (await q('select status from public.orders where id=$1', [pid]))[0]?.status === 'delivered');
+  await q(`select public.admin_set_courier('e2e-moto@x.com', true)`);
+  // 3. Saiu para entrega: a loja direciona ao entregador
+  const did = (await q('select public.dispatch_order($1,$2) id', [pid, K]))[0].id;
+  check('E2E 3: saiu para entrega com o entregador', (await q('select status from public.orders where id=$1', [pid]))[0].status === 'out_for_delivery' && !!did);
+  // 4. entregador dá baixa
+  await como('authenticated', K);
+  check('E2E 4: entregador dá baixa', (await q('select public.courier_confirm_delivery($1) r', [did]))[0].r === 'delivered');
   await su();
   const fim = (await q('select status, payment_method, total_cents from public.orders where id=$1', [pid]))[0];
-  check('E2E 6: pedido Entregue, pagamento Pix registrado', fim.status === 'delivered' && fim.payment_method === 'pix');
+  check('E2E 5: pedido Entregue, pagamento Pix registrado', fim.status === 'delivered' && fim.payment_method === 'pix');
   const eve = (await q(`select string_agg(type, ',' order by id) t from public.order_events where order_id=$1`, [pid]))[0].t;
-  check('E2E 7: linha do tempo da entrega', eve === 'PEDIDO_CRIADO,EM_PREPARO,PRONTO,SAIU_PARA_ENTREGA,ENTREGUE', eve);
+  check('E2E 6: linha do tempo da entrega', eve === 'PEDIDO_CRIADO,EM_PREPARO,PRONTO,SAIU_PARA_ENTREGA,ENTREGADOR_ATRIBUIDO,ENTREGUE', eve);
   const depois = await receita();
-  check('E2E 8: faturamento do relatório inclui o pedido', depois - antes === fim.total_cents, `${antes} -> ${depois}`);
+  check('E2E 7: faturamento do relatório inclui o pedido', depois - antes === fim.total_cents, `${antes} -> ${depois}`);
   // retirada ponta a ponta
   await como('authenticated', CL);
   const pr = (await ped([{ product_id: agua.id, quantity: 1 }], { nome: 'Cliente E2E' }))[0].r_order_id;
@@ -471,15 +540,19 @@ console.log('19) Fluxos ponta a ponta (cliente -> loja -> entrega -> pagamento -
   for (const st of ['preparing', 'ready', 'delivered']) await q(`update public.orders set status=$2 where id=$1`, [pr, st]);
   await su();
   const evr = (await q(`select string_agg(type, ',' order by id) t from public.order_events where order_id=$1`, [pr]))[0].t;
-  check('E2E 9: retirada Novo -> Em preparo -> Pronto para retirada -> Retirado', evr === 'PEDIDO_CRIADO,EM_PREPARO,PRONTO_PARA_RETIRADA,RETIRADO', evr);
-  await su();
+  check('E2E 8: retirada Novo -> Em preparo -> Pronto para retirada -> Retirado', evr === 'PEDIDO_CRIADO,EM_PREPARO,PRONTO_PARA_RETIRADA,RETIRADO', evr);
 }
 console.log('20) Funções auxiliares diretas');
 {
   await su();
-  await como('authenticated', ADM);
-  const so = (await q(`select public.order_status_ok('ready','delivered','pickup') a, public.order_status_ok('ready','delivered','delivery') b, public.order_status_ok('ready','out_for_delivery','delivery') c, public.order_status_ok('out_for_delivery','delivered','delivery') d, public.order_status_ok('ready','out_for_delivery','pickup') e`))[0];
-  check('order_status_ok espelha o fluxo', so.a === true && so.b === false && so.c === true && so.d === true && so.e === false, JSON.stringify(so));
+  const Q = P(90); await db.query(`insert into auth.users (id, email) values ($1,'aux@x.com')`, [Q]);
+  await como('authenticated', Q);
+  check('is_courier: falso para quem não foi liberado', (await q('select public.is_courier() v'))[0].v === false);
+  await como('authenticated', ADM); await q(`select public.admin_set_courier('aux@x.com', true)`);
+  await como('authenticated', Q);
+  check('is_courier: verdadeiro depois de liberado', (await q('select public.is_courier() v'))[0].v === true);
+  const so = (await q(`select public.order_status_ok('ready','delivered','pickup') a, public.order_status_ok('ready','delivered','delivery') b, public.order_status_ok('ready','out_for_delivery','delivery') c, public.order_status_ok('out_for_delivery','delivered','delivery') d`))[0];
+  check('order_status_ok espelha o fluxo (entrega só por despacho e baixa)', so.a === true && so.b === false && so.c === false && so.d === false, JSON.stringify(so));
   await su();
 }
 console.log('21) Regressão de segurança (Fase 4/5)');
@@ -489,6 +562,7 @@ console.log('21) Regressão de segurança (Fase 4/5)');
   await como('authenticated', ADM, false, 'aal1');
   check('V1 admin em aal1 NÃO lê pedidos de todos', (await n('select count(*) n from public.orders')) === 0);
   check('V1 admin em aal1 NÃO muda status', (await afet(`update public.orders set notes='x'`)) === 0);
+  check('V1 admin em aal1 NÃO libera entregador', !!(await erro(() => q(`select public.admin_set_courier('aux@x.com', true)`))));
   check('V1 admin em aal1 NÃO lê tentativas/auditoria', (await n('select count(*) n from public.access_attempts')) === 0 && (await n('select count(*) n from public.order_events')) === 0);
   await como('authenticated', ADM);
   check('V1 admin em aal2 continua com acesso', (await n('select count(*) n from public.orders')) > 10);
@@ -516,17 +590,19 @@ console.log('22) Reversão da 019 e reaplicação');
   check('depois de reaplicar, V1 continua fechado', (await n('select count(*) n from public.orders')) === 0);
   await su();
 }
-console.log('23) Sem rastreamento (022): tabelas, colunas e funções removidas; reaplicar é seguro');
+console.log('23) Sem rastreamento (022): GPS, rotas, Google e restaurantes removidos; entregas ficam; reaplicar é seguro');
 {
   await su();
   check('reaplicar 022', !(await erro(() => db.exec(readFileSync(DIR + files.find(x => x.startsWith('022')), 'utf8')))));
-  const tabelas = ['deliveries', 'delivery_positions', 'couriers', 'route_cache', 'google_api_usage', 'google_api_calls', 'google_api_alerts', 'restaurants', 'restaurant_members'];
+  const tabelas = ['delivery_positions', 'route_cache', 'google_api_usage', 'google_api_calls', 'google_api_alerts', 'restaurants', 'restaurant_members'];
   check('tabelas do rastreamento removidas', (await n(`select count(*) n from information_schema.tables where table_schema='public' and table_name = any($1)`, [tabelas])) === 0);
   check('pedido sem colunas de destino/restaurante', (await n(`select count(*) n from information_schema.columns where table_schema='public' and table_name='orders' and column_name in ('dest_lat','dest_lng','dest_source','restaurant_id')`)) === 0);
   check('configuração sem raio/precisão de GPS', (await n(`select count(*) n from information_schema.columns where table_schema='public' and table_name='store_settings' and column_name in ('delivery_confirm_radius_m','gps_max_accuracy_m')`)) === 0);
-  const fns = ['dispatch_order', 'courier_report_position', 'courier_confirm_delivery', 'courier_return_delivery', 'courier_set_eta', 'order_tracking', 'order_set_destination', 'admin_set_courier', 'admin_list_couriers', 'is_courier', 'purge_delivery_positions', 'distance_m', 'log_denied', 'google_reserve', 'google_consolidate', 'default_restaurant', 'is_restaurant_member'];
+  const fns = ['courier_report_position', 'courier_set_eta', 'order_tracking', 'order_set_destination', 'purge_delivery_positions', 'distance_m', 'log_denied', 'google_reserve', 'google_consolidate', 'default_restaurant', 'is_restaurant_member'];
   const sobrou = (await q(`select p.proname from pg_proc p join pg_namespace s on s.oid=p.pronamespace where s.nspname='public' and p.proname = any($1)`, [fns])).map(r => r.proname);
   check('funções do rastreamento removidas', sobrou.length === 0, sobrou.join(','));
+  check('entrega sem colunas de posição/rota', (await n(`select count(*) n from information_schema.columns where table_schema='public' and table_name='deliveries' and column_name in ('dest_lat','last_lat','eta_minutes','route_polyline','confirm_lat')`)) === 0);
+  check('entregas e entregadores continuam', (await n('select count(*) n from public.deliveries')) > 0 && (await n('select count(*) n from public.couriers')) > 0);
   check('pedidos e linha do tempo continuam', (await n('select count(*) n from public.orders')) > 10 && (await n('select count(*) n from public.order_events')) > 0);
 }
 console.log(`\nResultado: ${ok} ok, ${f} falhas`); process.exit(f ? 1 : 0);

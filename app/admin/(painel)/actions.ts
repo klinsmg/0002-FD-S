@@ -140,6 +140,30 @@ export async function excluirProduto(f: FormData) {
   redirect('/admin/produtos?ok=1');
 }
 
+// ---------- entregas ----------
+// "Saiu para entrega": a loja escolhe o entregador; o banco (dispatch_order) confere pedido Pronto de entrega e entregador ativo.
+export async function despacharPedido(f: FormData) {
+  const { supabase } = await exigirAdmin();
+  const id = idDe(f), entregador = idDe(f, 'entregador');
+  if (!id || !entregador) redirect('/admin/loja?erro=entregador');
+  const { error } = await supabase.rpc('dispatch_order', { p_order_id: id, p_courier_id: entregador });
+  if (error) redirect(`/admin/loja?erro=${error.message.includes('courier_not_found') ? 'entregador' : 'fluxo'}`);
+  atualizar('/admin', '/admin/loja', '/admin/pedidos', `/admin/pedidos/${id}`, `/pedido/${id}`, '/entregador');
+  redirect('/admin/loja');
+}
+
+// Liberar / tirar entregador pelo e-mail da conta Google
+export async function salvarEntregador(f: FormData) {
+  const { supabase } = await exigirAdmin();
+  const email = limpa(f.get('email'), 254).toLowerCase();
+  const ativo = f.get('ativo') !== '0';
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) redirect('/admin/configuracoes?erro=email#entregadores');
+  const { error } = await supabase.rpc('admin_set_courier', { p_email: email, p_active: ativo });
+  if (error) redirect(`/admin/configuracoes?erro=${error.message.includes('user_not_found') ? 'naoachou' : 'falha'}#entregadores`);
+  atualizar('/admin/configuracoes', '/admin/loja');
+  redirect(`/admin/configuracoes?ok=${ativo ? 'liberado' : 'removido'}#entregadores`);
+}
+
 // ---------- horário de funcionamento ----------
 // 7 dias de uma vez. Fecha depois da meia-noite (ex.: 18:00 às 01:00) é detectado sozinho.
 // Depois de salvar, regera as páginas públicas que mostram o horário (são estáticas).

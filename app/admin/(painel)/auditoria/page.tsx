@@ -5,7 +5,8 @@ export const metadata = { title: 'Auditoria' };
 
 const EVENTO: Record<string, string> = {
   PEDIDO_CRIADO: 'Pedido recebido', PEDIDO_CONFIRMADO: 'Confirmado', EM_PREPARO: 'Em preparo', PRONTO: 'Pronto', PRONTO_PARA_RETIRADA: 'Pronto para retirada',
-  SAIU_PARA_ENTREGA: 'Saiu para entrega', ENTREGUE: 'Entregue', RETIRADO: 'Retirado', CANCELADO: 'Cancelado',
+  ENTREGADOR_ATRIBUIDO: 'Entregador escolhido', SAIU_PARA_ENTREGA: 'Saiu para entrega', ENTREGUE: 'Entregue (baixa do entregador)',
+  RETIRADO: 'Retirado', CANCELADO: 'Cancelado', FALHA_NA_ENTREGA: 'Entrega não concluída', ENTREGA_RECUSADA: 'Entregador recusou',
 };
 const ACAO: Record<string, string> = { pedido: 'Criar pedido', login_admin: 'Login do painel', codigo_2fa: 'Código 2FA' };
 const quando = (d: string) => new Date(d).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -16,7 +17,7 @@ const ipCurto = (ip: string | null) => (ip ? ip.replace(/(\d+\.\d+)\.\d+\.\d+$/,
 export default async function Auditoria() {
   const { supabase } = await exigirDev();
   const [{ data: eventos }, { data: barradas }] = await Promise.all([
-    supabase.from('order_events').select('id, type, created_at, orders(id, order_number)').order('created_at', { ascending: false }).limit(80),
+    supabase.from('order_events').select('id, type, data, created_at, orders(id, order_number)').order('created_at', { ascending: false }).limit(80),
     supabase.from('access_attempts').select('id, action, ip, device, user_id, created_at').eq('blocked', true).order('created_at', { ascending: false }).limit(50),
   ]);
 
@@ -34,7 +35,7 @@ export default async function Auditoria() {
                 <li key={e.id}>
                   <time dateTime={e.created_at}>{quando(e.created_at)}</time>
                   {e.orders ? <Link href={`/admin/pedidos/${e.orders.id}`}>#{e.orders.order_number}</Link> : <span>—</span>}
-                  <span>{EVENTO[e.type] ?? e.type}</span>
+                  <span>{EVENTO[e.type] ?? e.type}{(e.data as { motivo?: string } | null)?.motivo && <small> · {String((e.data as { motivo: string }).motivo).replace(/_/g, ' ')}</small>}</span>
                 </li>
               ))}
             </ol>

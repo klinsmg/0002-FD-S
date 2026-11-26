@@ -1,7 +1,8 @@
 # Relatório — melhorias de segurança, desempenho e interfaces
 
-> **26/11/2026:** o rastreamento de entregas (app do entregador, GPS, mapas, Google Maps) descrito abaixo foi **removido**
-> (migração `022_remove_rastreamento.sql`). Este relatório fica como histórico.
+> **26/11/2026:** o rastreamento (GPS, mapas, rotas, Google Maps) descrito abaixo foi **removido** (migração
+> `022_remove_rastreamento.sql`). A entrega com entregador continua: a loja direciona e o entregador dá baixa, sem
+> localização. Este relatório fica como histórico.
 
 Branch: `melhorias-seguranca-desempenho` (um commit por fase; nada foi enviado ao GitHub nem publicado).
 Projeto: MDogão Itapevi — Next.js 16 + Supabase (Postgres, Auth, Realtime) na Vercel.

@@ -1214,12 +1214,7 @@ export type Database = {
       clean_text: { Args: { max_len: number; t: string }; Returns: string }
       courier_confirm_delivery: {
         Args: { p_delivery_id: string }
-        Returns: {
-          accuracy_m: number
-          distance_m: number
-          radius_m: number
-          result: string
-        }[]
+        Returns: string
       }
       courier_report_position: {
         Args: {
@@ -1270,13 +1265,7 @@ export type Database = {
       }
       default_restaurant: { Args: never; Returns: string }
       dispatch_order: {
-        Args: {
-          p_courier_id: string
-          p_dest_approx?: boolean
-          p_dest_lat: number
-          p_dest_lng: number
-          p_order_id: string
-        }
+        Args: { p_courier_id: string; p_order_id: string }
         Returns: string
       }
       distance_m: {

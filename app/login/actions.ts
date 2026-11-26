@@ -10,6 +10,8 @@ export async function entrarComGoogle(f: FormData) {
   const jar = await cookies();
   if (f.get('manter') === 'on') jar.delete(COOKIE_MANTER);
   else jar.set(COOKIE_MANTER, '0', COOKIE_SESSAO);
+  // depois do login, volta para o app do entregador (lista fixa no /auth/callback)
+  if (f.get('destino') === 'entregador') jar.set('voltar', 'entregador', { maxAge: 600, path: '/', httpOnly: true, sameSite: 'lax' });
 
   const origem = (await headers()).get('origin'); // Server Actions só aceitam origem igual à do site
   const { data, error } = await (await createClient()).auth.signInWithOAuth({

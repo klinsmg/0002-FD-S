@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { PAGAMENTO, proximos, enderecoTexto, exigirAdmin, hojeSP, type Status } from '@/lib/admin';
 import { PONTO, STATUS, reais } from '@/lib/conta';
-import { moverPedido } from '@/app/admin/(painel)/actions';
+import { despacharPedido, moverPedido } from '@/app/admin/(painel)/actions';
 import Confirmar from '@/components/Confirmar';
 import BotaoEnviar from '@/components/BotaoEnviar';
 import AlertaPedidos from '@/components/AlertaPedidos';
@@ -15,10 +15,12 @@ const COLUNAS: { t: string; s: Status[] }[] = [
   { t: 'Saiu para entrega', s: ['out_for_delivery'] },
   { t: 'Entregue / Cancelado', s: ['delivered', 'cancelled'] },
 ];
-// rótulo do botão que avança o pedido ("Entregue" em entrega, "Retirado" em retirada)
-const ACAO: Partial<Record<Status, string>> = { preparing: 'Começar preparo', ready: 'Pronto', out_for_delivery: 'Saiu para entrega', delivered: 'Entregue' };
+// rótulo do botão que avança o pedido. Entrega: "Saiu para entrega" é o despacho (com entregador) e o "Entregue" é a
+// baixa que o entregador dá no app dele; por isso só retirada tem botão de Retirado aqui.
+const ACAO: Partial<Record<Status, string>> = { preparing: 'Começar preparo', ready: 'Pronto', delivered: 'Retirado' };
 const MSG: Record<string, string> = {
   fluxo: 'Esse pedido já mudou de etapa (outro aparelho?). O quadro foi atualizado.', invalido: 'Ação inválida.',
+  entregador: 'Escolha um entregador ativo para o pedido sair.',
 };
 
 const CAMPOS = 'id, order_number, created_at, customer_name, customer_phone, order_type, status, notes, delivery_address, payment_method, total_cents, has_price_pending, order_items(id, quantity, product_name, variant_label, doneness, notes, order_item_extras(name, quantity))';
@@ -29,10 +31,20 @@ export default async function Loja({ searchParams }: { searchParams: Promise<{ e
   const { erro } = await searchParams;
   const { supabase } = await exigirAdmin();
   // abertos (de qualquer dia) + encerrados de hoje
-  const [{ data: abertos }, { data: fechados }] = await Promise.all([
+  const [{ data: abertos }, { data: fechados }, { data: entregadores }, { data: entregas }] = await Promise.all([
     supabase.from('orders').select(CAMPOS).in('status', ['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery']).order('created_at').limit(150),
     supabase.from('orders').select(CAMPOS).in('status', ['delivered', 'cancelled']).gte('created_at', `${hojeSP()}T00:00:00-03:00`).order('created_at', { ascending: false }).limit(40),
+    supabase.rpc('admin_list_couriers'),
+    supabase.from('deliveries').select('order_id, courier_id').eq('status', 'assigned'),
   ]);
+  const ativos = (entregadores ?? []).filter(c => c.active);
+  // pedido de entrega que voltou do entregador (recusa/não entregue): mostra o motivo no cartão
+  const prontosEntrega = (abertos ?? []).filter(p => p.status === 'ready' && p.order_type === 'delivery').map(p => p.id);
+  const { data: voltas } = prontosEntrega.length
+    ? await supabase.from('order_events').select('order_id, type, data, created_at').in('order_id', prontosEntrega).in('type', ['ENTREGA_RECUSADA', 'FALHA_NA_ENTREGA']).order('created_at', { ascending: false })
+    : { data: [] };
+  const MOTIVO: Record<string, string> = { recusada: 'o entregador recusou', cliente_ausente: 'cliente ausente', endereco_nao_encontrado: 'endereço não encontrado', outro: 'outro motivo' };
+  const nomeDe = (id: string | null) => { const c = entregadores?.find(x => x.user_id === id); return c?.name || c?.email || 'entregador'; };
   const todos = [...(abertos ?? []), ...(fechados ?? [])];
   const novos = (abertos ?? []).filter(p => p.status === 'pending').map(p => ({ id: p.id, n: p.order_number }));
 
@@ -78,10 +90,23 @@ export default async function Loja({ searchParams }: { searchParams: Promise<{ e
                       {entrega && <p className="ped-end">{enderecoTexto(p.delivery_address) || 'Endereço não informado'}</p>}
                       <p className="ped-total"><span>{p.payment_method ? PAGAMENTO[p.payment_method] ?? p.payment_method : 'Pagamento a definir'}</span><b>{reais(p.total_cents)}{p.has_price_pending ? ' +' : ''}</b></p>
                       <div className="ped-acoes">
+                        {p.status === 'out_for_delivery' && (() => { const d = entregas?.find(x => x.order_id === p.id); return <p className="ped-st">{d ? `Com ${nomeDe(d.courier_id)}.` : 'Saiu para entrega.'} O entregador dá baixa quando entregar.</p>; })()}
+                        {p.status === 'ready' && entrega && (() => { const v = voltas?.find(x => x.order_id === p.id); const m = (v?.data as { motivo?: string } | null)?.motivo; return v ? <p className="ped-st ped-volta" role="note">Voltou da entrega: {MOTIVO[m ?? ''] ?? 'sem motivo'}. Mande de novo ou cancele.</p> : null; })()}
+                        {p.status === 'ready' && entrega && (ativos.length ? (
+                          <form action={despacharPedido} className="ped-despacho">
+                            <input type="hidden" name="id" value={p.id} />
+                            <label className="sr" htmlFor={`ent-${p.id}`}>Entregador</label>
+                            <select id={`ent-${p.id}`} name="entregador" required defaultValue={ativos.length === 1 ? ativos[0].user_id : ''}>
+                              {ativos.length > 1 && <option value="" disabled>Quem leva?</option>}
+                              {ativos.map(c => <option key={c.user_id} value={c.user_id}>{c.name || c.email}{Number(c.open_deliveries) ? ` (${c.open_deliveries} em rota)` : ''}</option>)}
+                            </select>
+                            <BotaoEnviar pendente="Enviando…" className="btn btn-p">Saiu para entrega</BotaoEnviar>
+                          </form>
+                        ) : <p className="ped-st">Nenhum entregador liberado. <Link href="/admin/configuracoes#entregadores">Liberar em Configurações</Link>.</p>)}
                         {avancar.map(s => (
                           <form key={s} action={moverPedido}>
                             <input type="hidden" name="id" value={p.id} /><input type="hidden" name="para" value={s} />
-                            <BotaoEnviar pendente="…" className="btn btn-p">{s === 'delivered' && !entrega ? 'Retirado' : ACAO[s]}</BotaoEnviar>
+                            <BotaoEnviar pendente="…" className="btn btn-p">{ACAO[s]}</BotaoEnviar>
                           </form>
                         ))}
                         <a className="btn btn-o" href={`/admin/imprimir/${p.id}`} target="_blank" rel="noopener">Imprimir</a>

@@ -1,9 +1,10 @@
 # Inventário — MDogão Itapevi
 
 Estado da branch `melhorias-seguranca-desempenho` (Fase 6). Perfis: **Público** (visitante), **Cliente** (logado com
-Google), **Loja/Admin** (mesmo perfil: papel `admin`, e-mail+senha+2FA; a loja é única) e **Sistema** (banco/servidor).
-Rastreamento de entregas (app do entregador, GPS, mapas, Google Maps) **removido na migração 022**: o pedido anda só pelos
-status Novo → Em preparo → Pronto → Saiu para entrega → Entregue/Cancelado, marcados pela loja.
+Google), **Loja/Admin** (mesmo perfil: papel `admin`, e-mail+senha+2FA; a loja é única), **Entregador** (Google + liberado pelo
+admin) e **Sistema** (banco/servidor). Rastreamento (GPS, mapas, rotas, Google Maps) **removido na migração 022**: o pedido
+anda pelos status Novo → Em preparo → Pronto → Saiu para entrega (a loja direciona a um entregador) → Entregue (o
+entregador dá baixa no app dele) / Cancelado.
 
 ## 1. Funções por perfil
 
@@ -37,6 +38,8 @@ status Novo → Em preparo → Pronto → Saiu para entrega → Entregue/Cancela
 | Ativar 2FA | `gerarTotp`, `confirmarTotp` | Cadastra o autenticador (QR) |
 | Recuperar senha | `enviarLinkSenha`, `abrirLinkSenha`, `salvarSenha` | Link por e-mail (com limite), sessão de recuperação, nova senha (≥ 12) |
 | Quadro da loja ao vivo | `/admin/loja`, `moverPedido`, `AlertaPedidos` | Colunas Novo → Em preparo → Pronto → Saiu → Encerrados; alerta sonoro de pedido novo |
+| Saiu para entrega | `despacharPedido` (`dispatch_order`) | Escolhe o entregador no cartão do pedido Pronto |
+| Entregadores | `salvarEntregador` (`admin_set_courier`) | Libera/desativa pelo e-mail da conta Google, em Configurações |
 | Detalhe do pedido | `/admin/pedidos/[id]`, `atualizarPedido` | Status (só próximos válidos), forma de pagamento, observações |
 | Taxa de entrega e desconto | `definirValores` | Recalcula o total no banco (só pedido aberto) |
 | Imprimir pedido | `/admin/imprimir/[id]` | Via térmica com impressão automática |
@@ -49,6 +52,14 @@ status Novo → Em preparo → Pronto → Saiu para entrega → Entregue/Cancela
 | Auditoria | `/admin/auditoria` | Linha do tempo dos pedidos e tentativas barradas |
 | Sair | `POST /admin/logout` | Encerra a sessão (só POST) |
 
+### Entregador (Google + liberado pelo admin)
+| Função | Onde | O que faz |
+|---|---|---|
+| Ver entregas e resumo | `/entregador` | Entregas com ele agora, entregas de hoje/7 dias e soma das taxas (atualiza a cada 20 s) |
+| Dar baixa | `/entregador/[id]` (`BaixaEntrega`), `confirmarEntrega` | Confirma "Entregue"; o banco confere que a entrega é dele e está em andamento |
+| Recusar / não entregue | `devolverEntrega(motivo)` | Recusar, cliente ausente, endereço não encontrado ou outro → o pedido volta para "Pronto" |
+| Rota e ligação | links do Google Maps (pelo endereço) e `tel:` | Abre o app de mapas do celular; o site não coleta localização |
+
 ### Sistema / backend (banco Postgres/Supabase)
 | Função | Tipo | O que faz |
 |---|---|---|
@@ -57,11 +68,12 @@ status Novo → Em preparo → Pronto → Saiu para entrega → Entregue/Cancela
 | `admin_set_order_amounts` | RPC (admin) | Taxa e desconto, recalcula total |
 | `review_invite`, `review_decline`, `review_submit`, `review_google_click` | RPC (cliente) | Convite e avaliação |
 | `anonymize_customer_data` | RPC (sistema) | LGPD: anonimiza dados ao excluir a conta |
+| `dispatch_order`, `courier_confirm_delivery`, `courier_return_delivery`, `admin_set_courier`, `admin_list_couriers`, `is_courier` | RPC | Despacho (admin), baixa e devolução (entregador), gestão de entregadores |
 | `is_admin` (exige 2FA/aal2), `order_status_ok`, `clean_text` | Auxiliares | Usadas nas políticas e regras |
 | `orders_prepare`, `order_items_prepare`, `order_items_recalc`, `order_item_extras_prepare`, `order_item_extras_recalc` | Gatilhos | Limpeza de texto, preços e totais |
 | `orders_status_flow` | Gatilho | Fluxo de status válido pela API |
 | `orders_daily_limit` | Gatilho | 5 pedidos/dia por cliente (com trava de concorrência) |
-| `orders_log_event` | Gatilho | Linha do tempo dos status |
+| `orders_log_event`, `orders_cancel_delivery` | Gatilhos | Linha do tempo dos status; cancelar encerra a entrega |
 | `orders_broadcast` | Gatilho | Publicam no Realtime (`loja`, `pedido:<id>`) |
 | `handle_new_user`, `profiles_clean`, `addresses_limit`, `addresses_single_default`, `set_updated_at` | Gatilhos | Perfil automático, limpeza, até 5 endereços, um padrão, datas |
 
@@ -89,7 +101,8 @@ status Novo → Em preparo → Pronto → Saiu para entrega → Entregue/Cancela
 | `/admin/produtos`, `/admin/categorias` | Admin (aal2) | Catálogo |
 | `/admin/relatorios` | Admin (aal2) | Relatórios |
 | `/admin/auditoria` | Admin (aal2) | Auditoria |
-| `/admin/configuracoes` | Admin (aal2) | Conta, 2FA, horários |
+| `/admin/configuracoes` | Admin (aal2) | Conta, 2FA, horários, entregadores |
+| `/entregador`, `/entregador/[id]` | Entregador (login se não logado) | Entregas e baixa |
 | `/admin/imprimir/[id]` | Admin (aal2) | Impressão térmica |
 | qualquer outra | Público | 404 |
 

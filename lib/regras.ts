@@ -1,19 +1,20 @@
 // Regras puras do negócio (sem Next, sem Supabase): usadas pelo servidor, pelo navegador e pelos testes (tests/unit).
-// O banco confere as mesmas regras de novo (migrações 012 e 022); aqui elas decidem só o que mostrar e validam cedo.
+// O banco confere as mesmas regras de novo (migrações 012, 015 e 022); aqui elas decidem só o que mostrar e validam cedo.
 
 export type Status = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'out_for_delivery' | 'delivered' | 'cancelled';
 export const STATUS_LISTA: Status[] = ['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled'];
 
 // Fluxo da loja (o banco confere o mesmo: função order_status_ok):
-//   Novo -> Em preparo -> Pronto -> entrega: Saiu para entrega -> Entregue
+//   Novo -> Em preparo -> Pronto -> entrega: "Saiu para entrega" (só pelo despacho, escolhendo o entregador)
+//                                             -> "Entregue" (só pela baixa do entregador, no app /entregador)
 //                                   retirada: Entregue ("Retirado").
 // Cancelar vale em qualquer etapa antes de Entregue.
 export function proximos(de: Status, tipo: string): Status[] {
   switch (de) {
     case 'pending': case 'confirmed': return ['preparing', 'cancelled'];
     case 'preparing': return ['ready', 'cancelled'];
-    case 'ready': return [tipo === 'delivery' ? 'out_for_delivery' : 'delivered', 'cancelled'];
-    case 'out_for_delivery': return ['delivered', 'cancelled'];
+    case 'ready': return tipo === 'delivery' ? ['cancelled'] : ['delivered', 'cancelled'];
+    case 'out_for_delivery': return ['cancelled'];
     default: return [];
   }
 }

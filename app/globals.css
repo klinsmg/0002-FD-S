@@ -972,3 +972,28 @@ html.rv-on [data-reveal]{transition:opacity .6s cubic-bezier(.2,.7,.2,1),transfo
 @keyframes abre-form{from{opacity:0;transform:translateY(-6px)}}
 @media(prefers-reduced-motion:reduce){.adm-novo[open]>*:not(summary){animation:none}}
 .form select{width:100%;background:var(--superficie);color:var(--creme);border:1px solid var(--linha);border-radius:14px;padding:14px 16px;font:400 16px var(--fonte-corpo)}
+
+/* app do entregador (celular primeiro: botões grandes, leitura rápida na rua) e despacho no quadro da loja */
+.entr{max-width:640px}
+.entr .canais a{color:var(--destaque)}
+.ent-acoes{margin-top:18px;display:grid;gap:12px}
+.ent-acoes .btn{width:100%;min-height:52px;justify-content:center}
+.ent-itens{margin:14px 0;padding:12px 16px;border:1px solid var(--linha);border-radius:14px;background:var(--superficie)}
+.ent-itens summary{cursor:pointer;font-weight:700;min-height:32px;display:flex;align-items:center}
+.ent-itens ul{margin:8px 0 0;padding-left:18px;display:grid;gap:4px}
+.ent-entregue{font-size:20px}
+.ent-entregue:disabled{opacity:.45;cursor:not-allowed}
+.ent-confirma{display:grid;gap:10px;padding:16px;border:2px solid var(--destaque);border-radius:16px}
+.ent-confirma p{margin:0}
+.ent-msg{font-weight:700;color:var(--creme)}
+.ped-despacho{display:flex;flex-wrap:wrap;gap:8px;width:100%}
+.ped-despacho select{flex:1 1 140px;min-height:44px;padding:0 10px;border:1px solid var(--linha);border-radius:12px;background:var(--fundo);color:var(--creme);font:inherit}
+.ent-problema{border:1px solid var(--linha);border-radius:14px;padding:4px 14px}
+.ent-problema summary{cursor:pointer;min-height:48px;display:flex;align-items:center;font-weight:700;color:var(--texto-fraco)}
+.ent-problema[open]{padding-bottom:14px}
+.ent-motivos{display:grid;gap:8px}
+.ent-resumo{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 18px;padding:0;list-style:none}
+.ent-resumo li{padding:12px;border:1px solid var(--linha);border-radius:14px;background:var(--superficie);display:grid;gap:2px}
+.ent-resumo b{font-size:22px;font-variant-numeric:tabular-nums}
+.ent-resumo span{font-size:13px;color:var(--texto-fraco)}
+.ped-volta{color:#e0a23a;font-weight:700}
