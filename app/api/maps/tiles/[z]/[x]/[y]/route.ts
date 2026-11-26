@@ -7,6 +7,7 @@ import { depsPadrao } from '@/lib/mapas/servico';
 // A chave nunca sai do servidor. Sem link válido (HMAC + validade), Google desligado ou cota de tiles esgotada: 404,
 // e o mapa do cliente continua com marcadores e rota (o Leaflet só deixa o quadradinho vazio).
 let sessao: { token: string; expira: number } | null = null;
+let avisouEm = 0; // 1 registro de falha por minuto (cada mapa pede vários tiles)
 async function sessaoGoogle(chave: string) {
   if (sessao && sessao.expira - Date.now() > 3_600_000) return sessao.token;
   const r = await fetch(`https://tile.googleapis.com/v1/createSession?key=${encodeURIComponent(chave)}`, {
@@ -14,7 +15,12 @@ async function sessaoGoogle(chave: string) {
     signal: AbortSignal.timeout(5000), cache: 'no-store',
   });
   const j = await r.json().catch(() => null);
-  if (!r.ok || typeof j?.session !== 'string') return null;
+  if (!r.ok || typeof j?.session !== 'string') {
+    // motivo do Google (chave, API não ativada, faturamento) no registro de chamadas; o texto completo no log da Vercel
+    console.error('[tiles] createSession', r.status, j?.error?.message);
+    if (Date.now() - avisouEm > 60_000) { avisouEm = Date.now(); await depsPadrao().registrar({ provider: 'google', sku: null, endpoint: 'tiles:sessao', status: `http ${r.status} ${j?.error?.status ?? ''}`.trim().slice(0, 60) }).catch(() => {}); }
+    return null;
+  }
   sessao = { token: j.session, expira: Number(j.expiry) * 1000 || Date.now() + 86_400_000 };
   return sessao.token;
 }
@@ -31,6 +37,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ z: s
   const token = await sessaoGoogle(cfg.google.chave);
   if (!token) return nada(502);
   const r = await fetch(`https://tile.googleapis.com/v1/2dtiles/${Z}/${X}/${Y}?session=${encodeURIComponent(token)}&key=${encodeURIComponent(cfg.google.chave)}`, { signal: AbortSignal.timeout(5000), cache: 'no-store' });
-  if (!r.ok || !(r.headers.get('content-type') ?? '').startsWith('image/')) return nada(502);
+  if (!r.ok || !(r.headers.get('content-type') ?? '').startsWith('image/')) {
+    if (Date.now() - avisouEm > 60_000) { avisouEm = Date.now(); await deps.registrar({ provider: 'google', sku: null, endpoint: 'tiles:2d', status: `http ${r.status}` }).catch(() => {}); }
+    return nada(502);
+  }
   return new Response(r.body, { headers: { 'Content-Type': r.headers.get('content-type')!, 'Cache-Control': 'private, max-age=86400', 'X-Content-Type-Options': 'nosniff' } });
 }

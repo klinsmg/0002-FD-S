@@ -65,7 +65,9 @@ export class GoogleRoutingProvider implements RoutingProvider {
     const j = await r.json().catch(() => null);
     const x = j?.routes?.[0];
     const seg = Number(String(x?.duration ?? '').replace('s', ''));
-    if (!r.ok || !x || !Number.isFinite(seg)) return null;
+    // erro do Google (chave, API não ativada, faturamento): o motivo vai para o registro de chamadas (Admin → Dev · Mapas)
+    if (!r.ok) throw Object.assign(new Error(String(j?.error?.message ?? '')), { name: `http ${r.status} ${j?.error?.status ?? ''}`.trim() });
+    if (!x || !Number.isFinite(seg)) return null;
     return { minutos: Math.max(1, Math.round(seg / 60)), km: Math.round((x.distanceMeters ?? 0) / 100) / 10, polyline: x.polyline?.encodedPolyline ?? null, provedor: 'google' };
   }
 }

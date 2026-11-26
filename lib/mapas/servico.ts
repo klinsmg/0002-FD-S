@@ -112,6 +112,7 @@ export async function calcularRota(o: Ponto, d: Ponto, x: PedidoRota, deps: Deps
       await deps.registrar({ ...base, provider: nome, sku, status: r ? 'ok' : 'erro', latency_ms: deps.agora() - t0 });
       return r;
     } catch (e) {
+      console.error('[rota]', nome, (e as Error)?.name, (e as Error)?.message);
       await deps.registrar({ ...base, provider: nome, sku, status: String((e as Error)?.name ?? 'erro').slice(0, 60), latency_ms: deps.agora() - t0 });
       return null;
     }
