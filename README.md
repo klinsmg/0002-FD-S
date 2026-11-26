@@ -17,10 +17,10 @@ Importar o repositório na Vercel (framework Next.js detectado, sem configuraç�
 Domínio: `mdogao.com.br`, definido em `site` (`lib/info.ts`). Ele alimenta `metadataBase`, sitemap, robots, llms.txt e ai.txt.
 
 ## Como o sistema funciona
-Next.js (Vercel) + Supabase (Postgres com RLS, Auth com Google e e-mail/senha+2FA, Realtime). Perfis: cliente,
-loja/admin e entregador. Lista completa de funções, páginas e endpoints: **`INVENTARIO.md`**.
+Next.js (Vercel) + Supabase (Postgres com RLS, Auth com Google e e-mail/senha+2FA, Realtime). Perfis: cliente e
+loja/admin. Pedido por status (Novo → Em preparo → Pronto → Saiu para entrega → Entregue/Cancelado), marcados pela loja
+e vistos ao vivo pelo cliente. Lista completa de funções, páginas e endpoints: **`INVENTARIO.md`**.
 Relatório de testes, desempenho e segurança: **`RELATORIO.md`**.
-Rastreamento (mapa, rotas, ETA, Google opcional com cota): **`docs/arquitetura-rastreamento.md`**; VPS de mapas: **`infra/README.md`**.
 
 ## Testes
 `npm test` (unitários + banco no PGlite, sem tocar o banco real) · `npm run test:http` (com `next start -p 3100` ligado).

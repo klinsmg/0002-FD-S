@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
 
 // Cliente com a chave SECRETA (service_role). Uso restrito a duas funções de segurança que não podem confiar em quem
-// chama a API (access_check e log_denied, migração 019): o servidor informa o IP e o usuário já verificado.
+// chama a API (access_check, migração 019): o servidor informa o IP e o usuário já verificado.
 // NUNCA usar para ler/gravar dados de clientes (isso continua com o cliente do usuário + RLS).
 // 'server-only' quebra o build se alguém importar isto num componente do navegador.
 let cache: ReturnType<typeof createClient<Database>> | null | undefined;

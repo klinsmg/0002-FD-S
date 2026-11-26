@@ -8,13 +8,6 @@ const supabase = (() => {
   try { const u = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''); return u.protocol === 'https:' && u.hostname.endsWith('.supabase.co') ? u.origin : ''; } catch { return ''; }
 })();
 
-// Mapas self-hosted (VPS): a origem de MAPAS_URL/MAPAS_TILES_URL entra em connect-src (o navegador baixa os PMTiles por
-// HTTP Range). Só https válido. Os tiles do Google, quando ligados, passam pelo NOSSO proxy (mesma origem): nenhum domínio
-// do Google em script/img/connect.
-// (http só para localhost: teste local com o docker compose de infra/)
-const origem = (v?: string) => { try { const u = new URL(v ?? ''); return u.protocol === 'https:' || (u.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(u.hostname)) ? u.origin : ''; } catch { return ''; } };
-const mapas = [...new Set([origem(process.env.MAPAS_URL), origem(process.env.MAPAS_TILES_URL)].filter(Boolean))].join(' ');
-
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
@@ -23,9 +16,9 @@ const csp = [
   "media-src 'self'",
   "font-src 'self' data: https://fonts.gstatic.com",
   // wss:// explícito: o Chrome não libera o WebSocket do Realtime só com a origem https:// (o selo "Ao vivo" ficava em "Reconectando…")
-  `connect-src 'self' https://viacep.com.br${supabase ? ` ${supabase} ${supabase.replace('https://', 'wss://')}` : ''}${mapas ? ` ${mapas}` : ''} data: blob:`,
+  `connect-src 'self' https://viacep.com.br${supabase ? ` ${supabase} ${supabase.replace('https://', 'wss://')}` : ''}`,
   "frame-src https://www.google.com",
-  "worker-src blob:",
+  "worker-src 'none'",
   "manifest-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
@@ -39,8 +32,7 @@ const seguranca = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  // geolocation=(self): o app do entregador (/entregador) usa o GPS; terceiros e iframes continuam sem acesso
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self), payment=(), usb=(), bluetooth=(), serial=(), accelerometer=(), gyroscope=(), magnetometer=(), display-capture=(), browsing-topics=(), interest-cohort=()' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), serial=(), accelerometer=(), gyroscope=(), magnetometer=(), display-capture=(), browsing-topics=(), interest-cohort=()' },
   { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
   { key: 'Origin-Agent-Cluster', value: '?1' },
   { key: 'X-Permitted-Cross-Domain-Policies', value: 'none' },

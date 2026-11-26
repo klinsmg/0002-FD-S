@@ -2,7 +2,7 @@ import { cookies, headers } from 'next/headers';
 import { usuarioAtual } from '@/lib/supabase/server';
 import { clienteServico, ipLog } from '@/lib/supabase/servico';
 
-// Limite de tentativas nos pontos sensíveis (criar pedido, login do painel, código 2FA, GPS e mapas).
+// Limite de tentativas nos pontos sensíveis (criar pedido, login do painel, código 2FA).
 // Chaves: usuário logado + IP + dispositivo. IP sozinho não basta (Wi-Fi/4G compartilhado), por isso o teto por IP é
 // maior. Dispositivo = um ID aleatório nosso em cookie httpOnly (sem fingerprinting); apagar o cookie só zera essa chave.
 // Regras, bloqueio de 15 min e registro: função access_check (migrações 014 e 019). Só o servidor chama a função
@@ -17,7 +17,7 @@ export async function ipDaRequisicao() {
   return (h.get('x-real-ip') ?? h.get('x-forwarded-for')?.split(',')[0] ?? '').trim().slice(0, 64) || null;
 }
 
-export async function permitir(acao: 'pedido' | 'login_admin' | 'codigo_2fa' | 'gps' | 'mapas'): Promise<boolean> {
+export async function permitir(acao: 'pedido' | 'login_admin' | 'codigo_2fa'): Promise<boolean> {
   const ip = await ipDaRequisicao();
   const jar = await cookies();
   let disp = jar.get(COOKIE_DISP)?.value ?? '';
@@ -33,12 +33,4 @@ export async function permitir(acao: 'pedido' | 'login_admin' | 'codigo_2fa' | '
   if (error) { console.error('[protecao] access_check falhou', acao, error.message); return true; }
   if (data === false) console.warn('[protecao] bloqueado', acao, { ip: ipLog(ip), disp: disp.slice(0, 8) });
   return data !== false;
-}
-
-// Acesso negado (ex.: GPS para entrega de outro entregador): vai para o registro de segurança
-export async function registrarNegado(usuario: string | null) {
-  const servico = clienteServico();
-  if (!servico) return;
-  const disp = (await cookies()).get(COOKIE_DISP)?.value ?? '';
-  await servico.rpc('log_denied', { p_ip: (await ipDaRequisicao()) ?? '', p_device: disp, p_user: usuario as string });
 }

@@ -935,35 +935,7 @@ body:has(.cupons){background:#fff}
 @keyframes aovivo-entra{from{opacity:0;transform:translateY(12px)}}
 @media(prefers-reduced-motion:reduce){.aovivo-vivo::before,.aovivo-aviso{animation:none}}
 
-/* app do entregador (celular primeiro: botões grandes, leitura rápida na rua) */
-.ent{max-width:640px}
-.ent .canais a{color:var(--destaque)}
-.ent-itens{margin:14px 0;padding:12px 16px;border:1px solid var(--linha);border-radius:14px;background:var(--superficie)}
-.ent-itens summary{cursor:pointer;font-weight:700;min-height:32px;display:flex;align-items:center}
-.ent-itens ul{margin:8px 0 0;padding-left:18px;display:grid;gap:4px}
-.ent-aviso{margin-top:18px;padding:18px;border:1px solid var(--destaque);border-radius:16px;background:var(--superficie)}
-.ent-aviso ul{padding-left:18px;display:grid;gap:6px}
-.ent-gps{margin-top:18px;display:grid;gap:12px}
-.ent-gps .btn{width:100%;min-height:52px;justify-content:center}
-.ent-sinal{display:flex;align-items:center;gap:8px;margin:0;font-weight:700}
-.ent-sinal::before{content:"";flex:none;width:10px;height:10px;border-radius:50%;background:var(--texto-fraco)}
-.ent-ativo::before{background:#2fbf8a}
-.ent-negado::before,.ent-indisponivel::before{background:#e0a23a}
-.ent-entregue{font-size:20px}
-.ent-entregue:disabled{opacity:.45;cursor:not-allowed}
-.ent-confirma{display:grid;gap:10px;padding:16px;border:2px solid var(--destaque);border-radius:16px}
-.ent-confirma p{margin:0}
-.ent-msg{font-weight:700;color:var(--creme)}
-.ped-despacho{display:flex;flex-wrap:wrap;gap:8px;width:100%}
-.ped-despacho select{flex:1 1 140px;min-height:44px;padding:0 10px;border:1px solid var(--linha);border-radius:12px;background:var(--fundo);color:var(--creme);font:inherit}
 
-/* rastreio do pedido (cliente) */
-.rastreio{margin:16px 0;padding:16px;border:1px solid var(--linha);border-radius:16px;background:var(--superficie);display:grid;gap:10px}
-.rastreio-topo{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px}
-.rastreio-topo h2{margin:0;font-size:20px}
-.rastreio-eta{margin:0;font-size:18px}
-.rastreio-eta b{color:var(--destaque);font-size:24px}
-.rastreio-mapa{height:min(340px,55svh);border-radius:12px;overflow:hidden;background:var(--fundo)}
 .eventos{margin:12px 0}
 .eventos summary{cursor:pointer;font-weight:700;min-height:40px;display:flex;align-items:center}
 .eventos ol{list-style:none;margin:6px 0 0;padding:0 0 0 14px;border-left:2px solid var(--linha);display:grid;gap:8px}
@@ -978,15 +950,6 @@ html.rv-on [data-reveal]{transition:opacity .6s cubic-bezier(.2,.7,.2,1),transfo
 .hor-dia legend{float:left;grid-row:1/3;font-weight:700;padding:0}
 .hor-dia input[type=time]{width:100%;min-height:44px}
 .hor-dia .conta-check{grid-column:2/-1}
-.ent-problema{border:1px solid var(--linha);border-radius:14px;padding:4px 14px}
-.ent-problema summary{cursor:pointer;min-height:48px;display:flex;align-items:center;font-weight:700;color:var(--texto-fraco)}
-.ent-problema[open]{padding-bottom:14px}
-.ent-motivos{display:grid;gap:8px}
-.ent-resumo{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 18px;padding:0;list-style:none}
-.ent-resumo li{padding:12px;border:1px solid var(--linha);border-radius:14px;background:var(--superficie);display:grid;gap:2px}
-.ent-resumo b{font-size:22px;font-variant-numeric:tabular-nums}
-.ent-resumo span{font-size:13px;color:var(--texto-fraco)}
-.ped-volta{color:#e0a23a;font-weight:700}
 
 .aud-lista{list-style:none;margin:0;padding:0;display:grid;border:1px solid var(--linha);border-radius:14px;overflow:hidden}
 .aud-lista li{display:grid;grid-template-columns:96px 64px 1fr;gap:4px 12px;align-items:baseline;padding:10px 14px;border-top:1px solid var(--linha)}
@@ -1008,20 +971,4 @@ html.rv-on [data-reveal]{transition:opacity .6s cubic-bezier(.2,.7,.2,1),transfo
 .adm-novo[open]>*:not(summary){animation:abre-form .22s ease-out}
 @keyframes abre-form{from{opacity:0;transform:translateY(-6px)}}
 @media(prefers-reduced-motion:reduce){.adm-novo[open]>*:not(summary){animation:none}}
-.ped-coords{width:100%;font-size:.88rem}
-.ped-coords summary{cursor:pointer;color:var(--creme-2,inherit);min-height:32px;display:flex;align-items:center}
-.ped-coords input{width:100%;min-height:44px;padding:0 10px;border:1px solid var(--linha);border-radius:12px;background:var(--fundo);color:var(--creme);font:inherit}
-/* mapa (Leaflet): marcadores em emoji, mapa simples sem tiles, botão-link */
-.mk{display:grid;place-items:center;border-radius:50%;background:#fff;border:3px solid #130907;box-shadow:0 2px 6px rgb(0 0 0/.35);font-size:18px;line-height:1}
-.mk-moto{background:#f2a541}
-.mk-loja{background:#ffe3b0}
-.mapa-simples{background-color:#efe7dc;background-image:linear-gradient(#0000000d 1px,transparent 1px),linear-gradient(90deg,#0000000d 1px,transparent 1px);background-size:32px 32px}
-.rastreio-mapa .leaflet-container,.rastreio-mapa.leaflet-container{font:inherit;font-size:12px}
-.rastreio-reserva{font-size:.85rem;opacity:.8}
-.link-btn{background:none;border:0;padding:4px 0;min-height:32px;color:var(--destaque);font:inherit;text-decoration:underline;cursor:pointer}
-.link-btn:disabled{opacity:.5;cursor:default;text-decoration:none}
-.pino{display:grid;gap:8px;margin-top:6px}
-.pino-mapa{height:220px;border-radius:12px;overflow:hidden;border:1px solid var(--linha)}
 .form select{width:100%;background:var(--superficie);color:var(--creme);border:1px solid var(--linha);border-radius:14px;padding:14px 16px;font:400 16px var(--fonte-corpo)}
-#infra .aud-lista li,#google .aud-lista li,#uso .aud-lista li{grid-template-columns:minmax(0,1fr) auto}
-#google meter{grid-column:1/-1;width:100%;height:10px}

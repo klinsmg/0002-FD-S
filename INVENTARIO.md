@@ -1,8 +1,9 @@
 # Inventário — MDogão Itapevi
 
 Estado da branch `melhorias-seguranca-desempenho` (Fase 6). Perfis: **Público** (visitante), **Cliente** (logado com
-Google), **Loja/Admin** (mesmo perfil: papel `admin`, e-mail+senha+2FA; a loja é única), **Entregador** (Google +
-liberado pelo admin) e **Sistema** (banco/servidor).
+Google), **Loja/Admin** (mesmo perfil: papel `admin`, e-mail+senha+2FA; a loja é única) e **Sistema** (banco/servidor).
+Rastreamento de entregas (app do entregador, GPS, mapas, Google Maps) **removido na migração 022**: o pedido anda só pelos
+status Novo → Em preparo → Pronto → Saiu para entrega → Entregue/Cancelado, marcados pela loja.
 
 ## 1. Funções por perfil
 
@@ -21,7 +22,7 @@ liberado pelo admin) e **Sistema** (banco/servidor).
 | Função | Onde | O que faz |
 |---|---|---|
 | Fazer pedido | `createOrder` | Valida o carrinho, limite de tentativas, grava pelo `create_order` (preços do banco); máx. 5/dia |
-| Acompanhar pedido ao vivo | `/pedido/[id]` + `AoVivo` + `MapaRastreio` | Status em tempo real (WebSocket privado), mapa com rota, posição aproximada, ETA, linha do tempo |
+| Acompanhar pedido ao vivo | `/pedido/[id]` + `AoVivo` | Status em tempo real (WebSocket privado) e linha do tempo |
 | Ver meus pedidos | `/conta`, `/conta/pedidos` | Lista paginada (15/página) com status |
 | Editar perfil | `salvarPerfil` | Nome e telefone |
 | Gerenciar endereços (até 5) | `createAddress`, `updateAddress`, `deleteAddress`, `setDefaultAddress` | CRUD com endereço padrão |
@@ -36,7 +37,6 @@ liberado pelo admin) e **Sistema** (banco/servidor).
 | Ativar 2FA | `gerarTotp`, `confirmarTotp` | Cadastra o autenticador (QR) |
 | Recuperar senha | `enviarLinkSenha`, `abrirLinkSenha`, `salvarSenha` | Link por e-mail (com limite), sessão de recuperação, nova senha (≥ 12) |
 | Quadro da loja ao vivo | `/admin/loja`, `moverPedido`, `AlertaPedidos` | Colunas Novo → Em preparo → Pronto → Saiu → Encerrados; alerta sonoro de pedido novo |
-| Despachar entrega | `despacharPedido` | Escolhe o entregador, geocodifica o endereço (chave de backend) e marca "Saiu para entrega" |
 | Detalhe do pedido | `/admin/pedidos/[id]`, `atualizarPedido` | Status (só próximos válidos), forma de pagamento, observações |
 | Taxa de entrega e desconto | `definirValores` | Recalcula o total no banco (só pedido aberto) |
 | Imprimir pedido | `/admin/imprimir/[id]` | Via térmica com impressão automática |
@@ -45,24 +45,9 @@ liberado pelo admin) e **Sistema** (banco/servidor).
 | Produtos | `salvarProduto`, `alternarProduto`, `excluirProduto` | CRUD com busca instantânea e formulário recolhido |
 | Categorias | `salvarCategoria`, `alternarCategoria`, `excluirCategoria` | CRUD (só exclui vazia), busca instantânea |
 | Relatórios e CSV | `/admin/relatorios`, `/admin/relatorios/export` | Diário, mensal, mais vendidos, avaliações; CSV protegido contra injeção de fórmula |
-| Entregadores | `salvarEntregador` | Libera/desativa pelo e-mail da conta Google |
-| Regras da entrega | `configurarEntrega` | Raio de confirmação (20–300 m) e precisão mínima do GPS (10–100 m) |
 | Horário de funcionamento | `salvarHorarios` | Edita os 7 dias; o site é regerado na hora |
-| Auditoria | `/admin/auditoria` | Linha do tempo dos pedidos, tentativas barradas, acessos negados |
-| Retenção LGPD | `limparGpsAntigo` | Apaga GPS de entregas encerradas há mais de 30 dias |
+| Auditoria | `/admin/auditoria` | Linha do tempo dos pedidos e tentativas barradas |
 | Sair | `POST /admin/logout` | Encerra a sessão (só POST) |
-
-### Entregador (Google + liberado pelo admin)
-| Função | Onde | O que faz |
-|---|---|---|
-| Ver entregas e resumo | `/entregador` | Entregas ativas, entregas de hoje/7 dias e soma das taxas |
-| Aceitar entrega | `/entregador/[id]` (`Rastreador`) | Aviso LGPD e liga o GPS (envio a cada 7 s em movimento / 25 s parado, fila offline, tela acesa) |
-| Recusar entrega | `devolverEntrega('recusada')` | Antes de sair; pedido volta para "Pronto" |
-| Navegar | link Google Maps | Rota até o endereço no app de mapas |
-| Ligar para o cliente | link `tel:` | Telefone do pedido |
-| Enviar GPS | `POST /api/entregas/{id}/posicao` | Posição validada no servidor/banco; calcula ETA |
-| Confirmar entrega | `confirmarEntrega` | Só no raio e com GPS preciso; o banco recalcula e audita |
-| Não consegui entregar | `devolverEntrega(motivo)` | Cliente ausente / endereço não encontrado / outro → volta para a loja |
 
 ### Sistema / backend (banco Postgres/Supabase)
 | Função | Tipo | O que faz |
@@ -70,23 +55,14 @@ liberado pelo admin) e **Sistema** (banco/servidor).
 | `create_order` | RPC (cliente) | Cria pedido + itens + extras numa transação, preços do catálogo |
 | `create_contact` | RPC (cliente) | Mensagem de contato (com limite) |
 | `admin_set_order_amounts` | RPC (admin) | Taxa e desconto, recalcula total |
-| `admin_set_courier`, `admin_list_couriers` | RPC (admin) | Gestão de entregadores |
-| `dispatch_order` | RPC (admin) | Cria a entrega e marca "Saiu para entrega" |
-| `courier_report_position` | RPC (entregador) | Valida e grava GPS (horário, duplicada, 3 s, salto impossível, precisão) |
-| `courier_set_eta` | RPC (entregador) | Grava ETA/rota calculadas no servidor |
-| `courier_confirm_delivery` | RPC (entregador) | Confirma no raio com a última posição válida e audita |
-| `courier_return_delivery` | RPC (entregador) | Recusa/devolve com motivo; pedido volta para Pronto |
-| `order_tracking` | RPC (dono/admin) | Rastreio com posição aproximada e recente |
 | `review_invite`, `review_decline`, `review_submit`, `review_google_click` | RPC (cliente) | Convite e avaliação |
 | `anonymize_customer_data` | RPC (sistema) | LGPD: anonimiza dados ao excluir a conta |
-| `purge_delivery_positions` | RPC (admin) | Retenção do GPS (30 dias) |
-| `access_check`, `log_denied` | RPC (só servidor/service_role) | Limite de tentativas e registro de acesso negado |
-| `is_admin` (exige 2FA/aal2), `is_courier`, `order_status_ok`, `distance_m`, `clean_text` | Auxiliares | Usadas nas políticas e regras |
+| `is_admin` (exige 2FA/aal2), `order_status_ok`, `clean_text` | Auxiliares | Usadas nas políticas e regras |
 | `orders_prepare`, `order_items_prepare`, `order_items_recalc`, `order_item_extras_prepare`, `order_item_extras_recalc` | Gatilhos | Limpeza de texto, preços e totais |
 | `orders_status_flow` | Gatilho | Fluxo de status válido pela API |
 | `orders_daily_limit` | Gatilho | 5 pedidos/dia por cliente (com trava de concorrência) |
-| `orders_log_event`, `orders_cancel_delivery` | Gatilhos | Linha do tempo; cancelar encerra a entrega |
-| `orders_broadcast`, `deliveries_broadcast` | Gatilhos | Publicam no Realtime (`loja`, `pedido:<id>`) |
+| `orders_log_event` | Gatilho | Linha do tempo dos status |
+| `orders_broadcast` | Gatilho | Publicam no Realtime (`loja`, `pedido:<id>`) |
 | `handle_new_user`, `profiles_clean`, `addresses_limit`, `addresses_single_default`, `set_updated_at` | Gatilhos | Perfil automático, limpeza, até 5 endereços, um padrão, datas |
 
 ## 2. Páginas e rotas
@@ -104,8 +80,6 @@ liberado pelo admin) e **Sistema** (banco/servidor).
 | `/conta/configuracoes` | Cliente | Perfil e endereços |
 | `/conta/enderecos` | Cliente | Endereços (atalho) |
 | `/conta/seguranca` | Cliente | Sessão e conta |
-| `/entregador` | Entregador (login se não logado) | Entregas e resumo |
-| `/entregador/[id]` | Entregador da entrega | Aceitar/recusar, GPS, confirmar, devolver |
 | `/admin/login`, `/admin/login/2fa` | Admin (antes do 2FA) | Senha e código |
 | `/admin/seguranca` | Admin (aal1) | Ativar 2FA |
 | `/admin/senha` | Público com link de recuperação | Trocar a senha do admin |
@@ -114,8 +88,8 @@ liberado pelo admin) e **Sistema** (banco/servidor).
 | `/admin` | Admin (aal2) | Painel de KPIs |
 | `/admin/produtos`, `/admin/categorias` | Admin (aal2) | Catálogo |
 | `/admin/relatorios` | Admin (aal2) | Relatórios |
-| `/admin/auditoria` | Admin (aal2) | Auditoria e retenção LGPD |
-| `/admin/configuracoes` | Admin (aal2) | Conta, 2FA, horários, entregadores, regras da entrega |
+| `/admin/auditoria` | Admin (aal2) | Auditoria |
+| `/admin/configuracoes` | Admin (aal2) | Conta, 2FA, horários |
 | `/admin/imprimir/[id]` | Admin (aal2) | Impressão térmica |
 | qualquer outra | Público | 404 |
 
@@ -124,35 +98,10 @@ liberado pelo admin) e **Sistema** (banco/servidor).
 |---|---|---|---|
 | GET | `/api/sessao` | Nenhuma (responde "não logado") | Cabeçalho pergunta se há sessão (só o primeiro nome) |
 | GET | `/api/enderecos` | Sessão do cliente (vazio sem sessão) | Nome e endereços salvos para o carrinho |
-| POST | `/api/entregas/{id}/posicao` e `/api/courier/location` | Sessão do entregador vinculado + Origin igual ao site + corpo ≤ 1 KB + limite `gps` (20/min) | GPS do entregador (a cada 15 s); a rota só é recalculada por gatilho |
-| GET | `/api/orders/{id}`, `/api/orders/{id}/tracking` | Sessão; RLS (dono, admin, equipe da loja, entregador) | Resumo do pedido / rastreio (posição ~100 m) |
-| GET | `/api/orders/{id}/tracking-stream` | Idem + limite `mapas` | Rastreio por SSE (alternativa ao WebSocket) |
-| POST | `/api/orders/{id}/status`, `/api/deliveries/{pedido}/assign-courier`, `/api/admin/restaurants`, `/api/admin/couriers` | Admin com aal2 + senha + Origin (senão 404) | Mesmas regras do painel |
-| POST | `/api/maps/route`, `/api/maps/eta`, `/api/maps/config` | Sessão + RLS do pedido + Origin + limite `mapas` | Rota/ETA (manual recalcula após 2 min), configuração segura do mapa (1 por sessão) |
-| POST | `/api/maps/geocode` | Sessão + Origin + limite `mapas` | Sugestão do ponto do endereço (Nominatim próprio) |
-| GET | `/api/maps/base` | Nenhuma (cache de CDN 5 min) | Mapa base próprio do pino do checkout + ponto da loja |
-| GET | `/api/maps/tiles/{z}/{x}/{y}?t=` | Link assinado (HMAC, 2 h) + Google ligado + cota | Proxy dos tiles do Google (chave só no servidor) |
-| GET | `/api/cron/mapas` | `Authorization: Bearer CRON_SECRET` (Vercel Cron) | Consolidação diária da cota do Google |
 | GET | `/admin/relatorios/export?tipo=diario\|mensal\|produtos` | Admin com aal2 + senha | CSV dos relatórios |
 | POST | `/admin/logout` | Sessão | Sair do painel |
 | GET | `/auth/callback?code=` | Código OAuth/PKCE | Troca o código pela sessão; destino de lista fixa |
 | GET | `/llms.txt`, `/llms-full.txt`, `/ai.txt`, `/alt.txt` | Nenhuma | Texto estático |
-| POST | Server Actions (31, seção 1) | Conforme o perfil (verificado na ação e no banco) | Formulários e ações do site (mesma origem) |
+| POST | Server Actions (seção 1) | Conforme o perfil (verificado na ação e no banco) | Formulários e ações do site (mesma origem) |
 | WSS | `wss://<projeto>.supabase.co/realtime/v1` canais `pedido:<id>` e `loja` | JWT do usuário; RLS em `realtime.messages` | Tempo real (só leitura; ninguém publica pelo navegador) |
 | HTTPS | `https://<projeto>.supabase.co/rest/v1/*` | Chave publicável + JWT; RLS em todas as tabelas | API do banco usada pelo servidor (e acessível com o token do próprio usuário) |
-
-## 4. Rastreamento self-hosted e Google opcional (23/11/2026)
-
-Arquitetura, custos e ativação: **`docs/arquitetura-rastreamento.md`**. Infra do VPS: **`infra/README.md`**.
-
-| Perfil | Novo |
-|---|---|
-| Cliente | Pino opcional do endereço no checkout (mapa próprio); mapa do pedido com loja, casa, entregador e rota (Leaflet); ETA local; "Atualizar previsão" (no máximo a cada 2 min) |
-| Entregador | GPS a cada 15 s; app instalável (PWA, `/entregador.webmanifest`) |
-| Loja/Admin | **Admin → Mapas**: saúde do VPS, ponto da loja, Google por loja (plano, % de pedidos), consumo e avisos da cota, chamadas por dia/pedido/loja/entregador, custo estimado; despacho aceita coordenadas coladas |
-| Restaurante (equipe) | Papel `restaurant_members`: só LÊ os pedidos, itens, entregas e eventos da própria loja (sem painel próprio ainda) |
-| Sistema | Migração 020 (restaurants, destino do pedido, provedor da rota, velocidade, `route_cache`, limites `gps`/`mapas`) e 021 (`google_api_usage`, `google_api_calls`, `google_api_alerts`, `google_reserve`, `google_consolidate`) |
-
-Bibliotecas: `lib/mapas/{config,provedores,servico,rota-api}.ts`, `lib/gps.ts`, `lib/despacho.ts`, `lib/api.ts`,
-`lib/mapa-leaflet.ts`, `lib/pino.ts`; regras puras novas em `lib/regras.ts` (polyline, desvio, `etaLocal`,
-`deveRecalcular`, `chaveRota`, `lerCoords`).

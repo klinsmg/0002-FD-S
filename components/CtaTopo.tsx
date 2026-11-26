@@ -18,7 +18,7 @@ export default function CtaTopo() {
     return () => io.disconnect();
   }, [caminho]);
 
-  // sem "Realizar pedido" onde não faz sentido: cardápio (já é o pedido), login, painel e app do entregador
-  if (['/cardapio', '/entregador', '/admin', '/login'].some(r => caminho === r || caminho.startsWith(r + '/'))) return null;
+  // sem "Realizar pedido" onde não faz sentido: cardápio (já é o pedido), login e painel
+  if (['/cardapio', '/admin', '/login'].some(r => caminho === r || caminho.startsWith(r + '/'))) return null;
   return <Link ref={ref} className="btn btn-p topo-cta" href="/cardapio">Realizar pedido</Link>;
 }

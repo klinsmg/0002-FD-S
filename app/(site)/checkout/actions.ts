@@ -2,8 +2,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { after } from 'next/server';
-import { geocodificar } from '@/lib/mapas/servico';
 import { createClient } from '@/lib/supabase/server';
 import { permitir } from '@/lib/protecao';
 
@@ -103,18 +101,6 @@ export async function createOrder(_: Estado, f: FormData): Promise<Estado> {
   if (error || !pedido) {
     const codigo = Object.keys(ERROS).find(c => error?.message.includes(c));
     return { erro: codigo ? ERROS[codigo] : GENERICO };
-  }
-
-  // ponto da entrega: o pino confirmado pelo cliente no mapa; sem pino, o Nominatim próprio sugere (fora da resposta).
-  // O banco (order_set_destination) só aceita no pedido do próprio cliente e a até 50 km da loja.
-  if (entrega) {
-    const g = obj(p.geo), lat = Number(g.lat), lng = Number(g.lng);
-    const pino = g.fonte === 'pino' && Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
-    const id = pedido.r_order_id;
-    after(async () => {
-      const ponto = pino ? { lat, lng, fonte: 'pino' } : await geocodificar(endereco ?? {}).then(x => x && { lat: x.lat, lng: x.lng, fonte: 'nominatim' });
-      if (ponto) await supabase.rpc('order_set_destination', { p_order_id: id, p_lat: ponto.lat, p_lng: ponto.lng, p_source: ponto.fonte });
-    });
   }
 
   revalidatePath('/conta');

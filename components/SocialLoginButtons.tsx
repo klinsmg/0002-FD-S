@@ -9,10 +9,9 @@ function Botao() {
 
 // Login com Google (OAuth por redirecionamento, começado numa Server Action). Sem 2FA para clientes.
 // Depois do login o Supabase volta em /auth/callback, que abre /conta.
-export default function SocialLoginButtons({ falhou = false, destino }: { falhou?: boolean; destino?: 'entregador' }) {
+export default function SocialLoginButtons({ falhou = false }: { falhou?: boolean }) {
   return (
     <form className="login-botoes" action={entrarComGoogle}>
-      {destino && <input type="hidden" name="destino" value={destino} />}
       <Botao />
       <label className="conta-check"><input type="checkbox" name="manter" defaultChecked /> Manter conectado</label>
       <p className="nota">Em computador compartilhado, desmarque: você sai ao fechar o navegador.</p>
