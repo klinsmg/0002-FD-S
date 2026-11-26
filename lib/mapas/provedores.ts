@@ -47,6 +47,10 @@ export class OsrmRoutingProvider implements RoutingProvider {
 }
 
 // Routes API, faixa Essentials (sem trânsito): a cota grátis é a maior. Erro/timeout -> null (o serviço cai no OSRM).
+// motivo do erro do Google: o código (ex.: API_KEY_SERVICE_BLOCKED, BILLING_DISABLED) diz o que ajustar no Cloud Console
+export const motivoGoogle = (j: { error?: { status?: string; message?: string; details?: { reason?: string }[] } } | null) =>
+  j?.error?.details?.find(d => d?.reason)?.reason ?? j?.error?.status ?? j?.error?.message ?? '';
+
 export class GoogleRoutingProvider implements RoutingProvider {
   readonly nome = 'google' as const;
   private chave: string; private f: typeof fetch;
@@ -66,7 +70,7 @@ export class GoogleRoutingProvider implements RoutingProvider {
     const x = j?.routes?.[0];
     const seg = Number(String(x?.duration ?? '').replace('s', ''));
     // erro do Google (chave, API não ativada, faturamento): o motivo vai para o registro de chamadas (Admin → Dev · Mapas)
-    if (!r.ok) throw Object.assign(new Error(String(j?.error?.message ?? '')), { name: `${r.status} ${j?.error?.message ?? j?.error?.status ?? ''}`.trim() });
+    if (!r.ok) throw Object.assign(new Error(String(j?.error?.message ?? '')), { name: `${r.status} ${motivoGoogle(j)}`.trim() });
     if (!x || !Number.isFinite(seg)) return null;
     return { minutos: Math.max(1, Math.round(seg / 60)), km: Math.round((x.distanceMeters ?? 0) / 100) / 10, polyline: x.polyline?.encodedPolyline ?? null, provedor: 'google' };
   }
