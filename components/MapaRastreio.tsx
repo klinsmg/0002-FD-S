@@ -127,9 +127,9 @@ export default function MapaRastreio({ pedido, inicial }: { pedido: string; inic
     <section className="rastreio" aria-labelledby="rastreio-t">
       <div className="rastreio-topo">
         <h2 id="rastreio-t">{ETAPA[d.status] ?? 'Saiu para entrega'}</h2>
-        {!encerrada && eta !== null && <p className="rastreio-eta"><b>~{eta} min</b>{d.km !== null && <span> · {String(d.km).replace('.', ',')} km</span>}</p>}
+        {!encerrada && d.status !== 'arrived' && eta !== null && <p className="rastreio-eta"><b>~{eta} min</b>{d.km !== null && <span> · {String(d.km).replace('.', ',')} km</span>}</p>}
       </div>
-      {!encerrada && !temPosicao && <p className="nota" role="status">Localização temporariamente indisponível. Assim que o sinal do entregador voltar, ela aparece aqui.</p>}
+      {!encerrada && !temPosicao && <p className="nota" role="status">{d.status === 'assigned' ? 'O entregador está saindo da loja. A posição aparece aqui assim que ele sair.' : 'Localização temporariamente indisponível. Assim que o sinal do entregador voltar, ela aparece aqui.'}</p>}
       <div ref={caixa} className="rastreio-mapa" role="img" aria-label="Mapa com a loja, a rota até o seu endereço e a posição aproximada do entregador" />
       {cfg?.fallback && <p className="nota rastreio-reserva">Mapa simplificado no momento. A posição e a previsão continuam sendo atualizadas.</p>}
       {!encerrada && (
