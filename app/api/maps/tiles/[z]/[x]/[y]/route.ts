@@ -10,6 +10,7 @@ let sessao: { token: string; expira: number } | null = null;
 let avisouEm = 0; // 1 registro de falha por minuto (cada mapa pede vários tiles)
 async function sessaoGoogle(chave: string) {
   if (sessao && sessao.expira - Date.now() > 3_600_000) return sessao.token;
+  if (Date.now() - avisouEm < 60_000) return null; // falhou há pouco: não insiste a cada tile
   const r = await fetch(`https://tile.googleapis.com/v1/createSession?key=${encodeURIComponent(chave)}`, {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mapType: 'roadmap', language: 'pt-BR', region: 'BR' }),
     signal: AbortSignal.timeout(5000), cache: 'no-store',
@@ -33,9 +34,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ z: s
   const cfg = configMapas();
   if (!cfg.google.mapaLigado || !verificarTiles(req.nextUrl.searchParams.get('t') ?? '', cfg.hmac, Date.now())) return nada(403);
   const deps = depsPadrao();
-  if ((await deps.reservar('map_tiles', cfg.google.capTiles, cfg.google.softPct)) !== 'ok') return nada();
   const token = await sessaoGoogle(cfg.google.chave);
   if (!token) return nada(502);
+  // a cota só conta tile que vai mesmo ao Google (sessão falhando não consome)
+  if ((await deps.reservar('map_tiles', cfg.google.capTiles, cfg.google.softPct)) !== 'ok') return nada();
   const r = await fetch(`https://tile.googleapis.com/v1/2dtiles/${Z}/${X}/${Y}?session=${encodeURIComponent(token)}&key=${encodeURIComponent(cfg.google.chave)}`, { signal: AbortSignal.timeout(5000), cache: 'no-store' });
   if (!r.ok || !(r.headers.get('content-type') ?? '').startsWith('image/')) {
     if (Date.now() - avisouEm > 60_000) { avisouEm = Date.now(); await deps.registrar({ provider: 'google', sku: null, endpoint: 'tiles:2d', status: `http ${r.status}` }).catch(() => {}); }
