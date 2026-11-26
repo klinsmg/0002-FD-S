@@ -51,10 +51,11 @@ export default function Rastreador({ id, destino, raio, precisaoMax, iniciada }:
       });
       if (r.status === 403 || r.status === 401) { parar(); setEstado('encerrado'); setMsg('Esta entrega não está mais com você.'); return true; }
       if (!r.ok) return false;
+      if (!enviada.current) router.refresh(); // 1ª posição: o servidor passa a entrega para "A caminho"
       enviada.current = p;
       return true;
     } catch { return false; }
-  }, [id, parar]);
+  }, [id, parar, router]);
 
   // fila: primeiro o que ficou pendente (descarta o que já venceu), depois a posição nova
   const despachar = useCallback(async (p: Pos | null) => {

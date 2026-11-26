@@ -173,8 +173,12 @@ export type Local = { lat: number; lng: number; preciso: boolean };
 export async function geocodificar(e: { street?: string; number?: string; district?: string; city?: string; state?: string; zip_code?: string },
   deps: Pick<Deps, 'cfg' | 'fetch'> = depsPadrao()): Promise<Local | null> {
   const base = deps.cfg.nominatim;
-  if (!base) return null;
   const cep = (e.zip_code ?? '').replace(/\D/g, '');
+  // sem VPS: Nominatim público (1-2 chamadas por pedido, só o endereço, sem nome). Sem isto, toda entrega pedia coordenadas à mão.
+  if (!base) {
+    const g = await geocodificarTexto([`${e.street ?? ''}, ${e.number ?? ''}`, e.district, `${e.city ?? ''} ${e.state ?? ''}`, cep].filter(v => v?.replace(/[\s,]/g, '')).join(', '), deps);
+    return g && { lat: g.lat, lng: g.lng, preciso: !g.aproximado };
+  }
   const tentativas: Record<string, string>[] = [
     { street: `${e.number ?? ''} ${e.street ?? ''}`.trim(), city: e.city ?? '', state: e.state ?? '', postalcode: cep },
     { street: e.street ?? '', city: e.city ?? '', state: e.state ?? '' },

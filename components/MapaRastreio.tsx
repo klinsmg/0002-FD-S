@@ -62,6 +62,12 @@ export default function MapaRastreio({ pedido, inicial }: { pedido: string; inic
     return () => { window.removeEventListener('aovivo', ouvir); clearInterval(t); };
   }, [pedido]);
 
+  // sem o canal ao vivo, a página se atualiza a cada 30 s (AoVivo): aceita o dado do servidor se for mais novo
+  useEffect(() => {
+    const t = (s: string | null) => (s ? Date.parse(s) : 0);
+    setD(v => (t(inicial.atualizadoEm) > t(v.atualizadoEm) || t(inicial.etaEm) > t(v.etaEm) ? { ...v, ...inicial } : v));
+  }, [inicial.atualizadoEm, inicial.etaEm]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const temPosicao = d.lat !== null && d.lng !== null && !!d.atualizadoEm && agora - new Date(d.atualizadoEm).getTime() < RECENTE_MS;
 
   // cria o mapa uma vez (configuração do backend; sem ela, mapa simples: marcadores + rota)

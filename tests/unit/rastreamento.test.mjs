@@ -291,8 +291,11 @@ test('Nominatim próprio: número da casa = exato; rua/CEP = aproximado; nada = 
   assert.deepEqual(await S.geocodificar(end, rua), { lat: -23.5, lng: -46.9, preciso: false });
   assert.equal(await S.geocodificar(end, deps({ nominatim: () => ok([]) })), null);
   assert.equal(await S.geocodificar(end, deps({ nominatim: () => falha(403) })), null);
-  const semVps = deps({ c: cfg({}, { nominatim: '' }) });
-  assert.equal(await S.geocodificar(end, semVps), null); assert.equal(semVps.n.nominatim, 0);
+  // sem VPS: Nominatim público em texto livre (só o endereço), com User-Agent; casa achada = exato
+  const urls = [];
+  const pub = { cfg: { nominatim: '', token: '' }, fetch: async (u, init) => { urls.push(String(u)); assert.ok(init.headers['User-Agent']); return ok([{ lat: '-23.54', lon: '-46.93', addresstype: 'house' }]); } };
+  assert.deepEqual(await S.geocodificar(end, pub), { lat: -23.54, lng: -46.93, preciso: true });
+  assert.match(urls[0], /^https:\/\/nominatim\.openstreetmap\.org\/search\?q=Rua\+A%2C\+10%2C\+Centro%2C\+Itapevi\+SP%2C\+06653000/);
 });
 
 test('endereço da loja: VPS com token; sem VPS, Nominatim público com User-Agent; não achou = null', async () => {
