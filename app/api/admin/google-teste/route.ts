@@ -19,7 +19,7 @@ export async function GET() {
       const r = await fetch(url, { ...init, signal: AbortSignal.timeout(8000), cache: 'no-store' });
       const corpo = limpo(await r.text()).slice(0, 4000);
       let j: unknown = corpo; try { j = JSON.parse(corpo); } catch { /* texto */ }
-      return { http: r.status, resposta: r.ok ? 'ok' : j };
+      return { http: r.status, resposta: j };
     } catch (e) { return { http: 0, resposta: String((e as Error)?.message ?? e) }; }
   };
   const tiles = await chamar(`https://tile.googleapis.com/v1/createSession?key=${encodeURIComponent(chave)}`, {
@@ -30,5 +30,7 @@ export async function GET() {
     headers: { 'content-type': 'application/json', 'X-Goog-Api-Key': chave, 'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters' },
     body: JSON.stringify({ origin: { location: { latLng: { latitude: -23.5411, longitude: -46.9345 } } }, destination: { location: { latLng: { latitude: -23.5491, longitude: -46.9372 } } }, travelMode: 'DRIVE' }),
   });
-  return json(200, { ligado: true, chave: `${chave.slice(0, 6)}…${chave.slice(-4)} (${chave.length} caracteres)`, tiles, rotas });
+  // Geocoding API: responde em texto claro o problema do projeto (faturamento, API não ativada, restrição da chave)
+  const geocoding = await chamar(`https://maps.googleapis.com/maps/api/geocode/json?address=Itapevi%20SP&key=${encodeURIComponent(chave)}`, {});
+  return json(200, { ligado: true, chave: `${chave.slice(0, 6)}…${chave.slice(-4)} (${chave.length} caracteres)`, tiles, rotas, geocoding });
 }
