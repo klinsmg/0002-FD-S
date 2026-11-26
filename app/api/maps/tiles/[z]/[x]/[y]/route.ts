@@ -18,7 +18,7 @@ async function sessaoGoogle(chave: string) {
   if (!r.ok || typeof j?.session !== 'string') {
     // motivo do Google (chave, API não ativada, faturamento) no registro de chamadas; o texto completo no log da Vercel
     console.error('[tiles] createSession', r.status, j?.error?.message);
-    if (Date.now() - avisouEm > 60_000) { avisouEm = Date.now(); await depsPadrao().registrar({ provider: 'google', sku: null, endpoint: 'tiles:sessao', status: `http ${r.status} ${j?.error?.status ?? ''}`.trim().slice(0, 60) }).catch(() => {}); }
+    if (Date.now() - avisouEm > 60_000) { avisouEm = Date.now(); await depsPadrao().registrar({ provider: 'google', sku: null, endpoint: 'tiles:sessao', status: `${r.status} ${j?.error?.message ?? j?.error?.status ?? ''}`.trim().slice(0, 60) }).catch(() => {}); }
     return null;
   }
   sessao = { token: j.session, expira: Number(j.expiry) * 1000 || Date.now() + 86_400_000 };
