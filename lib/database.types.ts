@@ -241,83 +241,29 @@ export type Database = {
       }
       deliveries: {
         Row: {
-          confirm_accuracy_m: number | null
-          confirm_distance_m: number | null
-          confirm_lat: number | null
-          confirm_lng: number | null
           courier_id: string | null
           created_at: string
-          dest_approx: boolean
-          dest_lat: number
-          dest_lng: number
-          distance_km: number | null
-          eta_minutes: number | null
-          eta_updated_at: string | null
           finished_at: string | null
           id: string
-          last_accuracy_m: number | null
-          last_captured_at: string | null
-          last_lat: number | null
-          last_lng: number | null
-          last_speed_kmh: number | null
           order_id: string
-          route_polyline: string | null
-          route_provider: string | null
-          started_at: string | null
           status: string
           updated_at: string
         }
         Insert: {
-          confirm_accuracy_m?: number | null
-          confirm_distance_m?: number | null
-          confirm_lat?: number | null
-          confirm_lng?: number | null
           courier_id?: string | null
           created_at?: string
-          dest_approx?: boolean
-          dest_lat: number
-          dest_lng: number
-          distance_km?: number | null
-          eta_minutes?: number | null
-          eta_updated_at?: string | null
           finished_at?: string | null
           id?: string
-          last_accuracy_m?: number | null
-          last_captured_at?: string | null
-          last_lat?: number | null
-          last_lng?: number | null
-          last_speed_kmh?: number | null
           order_id: string
-          route_polyline?: string | null
-          route_provider?: string | null
-          started_at?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
-          confirm_accuracy_m?: number | null
-          confirm_distance_m?: number | null
-          confirm_lat?: number | null
-          confirm_lng?: number | null
           courier_id?: string | null
           created_at?: string
-          dest_approx?: boolean
-          dest_lat?: number
-          dest_lng?: number
-          distance_km?: number | null
-          eta_minutes?: number | null
-          eta_updated_at?: string | null
           finished_at?: string | null
           id?: string
-          last_accuracy_m?: number | null
-          last_captured_at?: string | null
-          last_lat?: number | null
-          last_lng?: number | null
-          last_speed_kmh?: number | null
           order_id?: string
-          route_polyline?: string | null
-          route_provider?: string | null
-          started_at?: string | null
           status?: string
           updated_at?: string
         }
@@ -327,47 +273,6 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      delivery_positions: {
-        Row: {
-          accuracy_m: number
-          captured_at: string
-          delivery_id: string
-          id: number
-          lat: number
-          lng: number
-          received_at: string
-          speed_kmh: number | null
-        }
-        Insert: {
-          accuracy_m: number
-          captured_at: string
-          delivery_id: string
-          id?: number
-          lat: number
-          lng: number
-          received_at?: string
-          speed_kmh?: number | null
-        }
-        Update: {
-          accuracy_m?: number
-          captured_at?: string
-          delivery_id?: string
-          id?: number
-          lat?: number
-          lng?: number
-          received_at?: string
-          speed_kmh?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "delivery_positions_delivery_id_fkey"
-            columns: ["delivery_id"]
-            isOneToOne: false
-            referencedRelation: "deliveries"
             referencedColumns: ["id"]
           },
         ]
@@ -402,133 +307,6 @@ export type Database = {
           sort_order?: number
           type?: Database["public"]["Enums"]["extra_type"]
           updated_at?: string
-        }
-        Relationships: []
-      }
-      google_api_alerts: {
-        Row: {
-          created_at: string
-          free_cap: number
-          level: number
-          period_start: string
-          sku: string
-          used_events: number
-        }
-        Insert: {
-          created_at?: string
-          free_cap: number
-          level: number
-          period_start: string
-          sku: string
-          used_events: number
-        }
-        Update: {
-          created_at?: string
-          free_cap?: number
-          level?: number
-          period_start?: string
-          sku?: string
-          used_events?: number
-        }
-        Relationships: []
-      }
-      google_api_calls: {
-        Row: {
-          cost_estimate: number
-          courier_id: string | null
-          created_at: string
-          delivery_id: string | null
-          endpoint: string
-          id: number
-          latency_ms: number | null
-          order_id: string | null
-          provider: string
-          restaurant_id: string | null
-          sku: string | null
-          status: string
-        }
-        Insert: {
-          cost_estimate?: number
-          courier_id?: string | null
-          created_at?: string
-          delivery_id?: string | null
-          endpoint: string
-          id?: number
-          latency_ms?: number | null
-          order_id?: string | null
-          provider: string
-          restaurant_id?: string | null
-          sku?: string | null
-          status: string
-        }
-        Update: {
-          cost_estimate?: number
-          courier_id?: string | null
-          created_at?: string
-          delivery_id?: string | null
-          endpoint?: string
-          id?: number
-          latency_ms?: number | null
-          order_id?: string | null
-          provider?: string
-          restaurant_id?: string | null
-          sku?: string | null
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "google_api_calls_delivery_id_fkey"
-            columns: ["delivery_id"]
-            isOneToOne: false
-            referencedRelation: "deliveries"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "google_api_calls_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "google_api_calls_restaurant_id_fkey"
-            columns: ["restaurant_id"]
-            isOneToOne: false
-            referencedRelation: "restaurants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      google_api_usage: {
-        Row: {
-          created_at: string
-          free_cap: number
-          id: number
-          period_end: string
-          period_start: string
-          sku: string
-          updated_at: string
-          used_events: number
-        }
-        Insert: {
-          created_at?: string
-          free_cap: number
-          id?: number
-          period_end: string
-          period_start: string
-          sku: string
-          updated_at?: string
-          used_events?: number
-        }
-        Update: {
-          created_at?: string
-          free_cap?: number
-          id?: number
-          period_end?: string
-          period_start?: string
-          sku?: string
-          updated_at?: string
-          used_events?: number
         }
         Relationships: []
       }
@@ -683,9 +461,6 @@ export type Database = {
           customer_phone: string | null
           delivery_address: Json | null
           delivery_fee_cents: number
-          dest_lat: number | null
-          dest_lng: number | null
-          dest_source: string | null
           discount_cents: number
           has_price_pending: boolean
           id: string
@@ -693,7 +468,6 @@ export type Database = {
           order_number: number
           order_type: string
           payment_method: string | null
-          restaurant_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal_cents: number
           total_cents: number
@@ -706,9 +480,6 @@ export type Database = {
           customer_phone?: string | null
           delivery_address?: Json | null
           delivery_fee_cents?: number
-          dest_lat?: number | null
-          dest_lng?: number | null
-          dest_source?: string | null
           discount_cents?: number
           has_price_pending?: boolean
           id?: string
@@ -716,7 +487,6 @@ export type Database = {
           order_number?: never
           order_type: string
           payment_method?: string | null
-          restaurant_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal_cents?: number
           total_cents?: number
@@ -729,9 +499,6 @@ export type Database = {
           customer_phone?: string | null
           delivery_address?: Json | null
           delivery_fee_cents?: number
-          dest_lat?: number | null
-          dest_lng?: number | null
-          dest_source?: string | null
           discount_cents?: number
           has_price_pending?: boolean
           id?: string
@@ -739,22 +506,13 @@ export type Database = {
           order_number?: never
           order_type?: string
           payment_method?: string | null
-          restaurant_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal_cents?: number
           total_cents?: number
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "orders_restaurant_id_fkey"
-            columns: ["restaurant_id"]
-            isOneToOne: false
-            referencedRelation: "restaurants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       product_variants: {
         Row: {
@@ -871,71 +629,6 @@ export type Database = {
         }
         Relationships: []
       }
-      restaurant_members: {
-        Row: {
-          created_at: string
-          restaurant_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          restaurant_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          restaurant_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "restaurant_members_restaurant_id_fkey"
-            columns: ["restaurant_id"]
-            isOneToOne: false
-            referencedRelation: "restaurants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      restaurants: {
-        Row: {
-          active: boolean
-          created_at: string
-          google_maps_enabled: boolean
-          google_maps_percent: number
-          id: string
-          lat: number | null
-          lng: number | null
-          name: string
-          plan: string
-          updated_at: string
-        }
-        Insert: {
-          active?: boolean
-          created_at?: string
-          google_maps_enabled?: boolean
-          google_maps_percent?: number
-          id?: string
-          lat?: number | null
-          lng?: number | null
-          name: string
-          plan?: string
-          updated_at?: string
-        }
-        Update: {
-          active?: boolean
-          created_at?: string
-          google_maps_enabled?: boolean
-          google_maps_percent?: number
-          id?: string
-          lat?: number | null
-          lng?: number | null
-          name?: string
-          plan?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       review_prompts: {
         Row: {
           created_at: string
@@ -1006,36 +699,6 @@ export type Database = {
           },
         ]
       }
-      route_cache: {
-        Row: {
-          created_at: string
-          distance_m: number
-          duration_s: number
-          expires_at: string
-          key: string
-          polyline: string | null
-          provider: string
-        }
-        Insert: {
-          created_at?: string
-          distance_m: number
-          duration_s: number
-          expires_at: string
-          key: string
-          polyline?: string | null
-          provider: string
-        }
-        Update: {
-          created_at?: string
-          distance_m?: number
-          duration_s?: number
-          expires_at?: string
-          key?: string
-          polyline?: string | null
-          provider?: string
-        }
-        Relationships: []
-      }
       sections: {
         Row: {
           active: boolean
@@ -1068,10 +731,8 @@ export type Database = {
           address_district: string | null
           address_street: string | null
           address_zip: string | null
-          delivery_confirm_radius_m: number
           email: string | null
           founded_year: number | null
-          gps_max_accuracy_m: number
           id: boolean
           instagram_url: string | null
           menu_notice: string | null
@@ -1083,10 +744,8 @@ export type Database = {
           address_district?: string | null
           address_street?: string | null
           address_zip?: string | null
-          delivery_confirm_radius_m?: number
           email?: string | null
           founded_year?: number | null
-          gps_max_accuracy_m?: number
           id?: boolean
           instagram_url?: string | null
           menu_notice?: string | null
@@ -1098,10 +757,8 @@ export type Database = {
           address_district?: string | null
           address_street?: string | null
           address_zip?: string | null
-          delivery_confirm_radius_m?: number
           email?: string | null
           founded_year?: number | null
-          gps_max_accuracy_m?: number
           id?: boolean
           instagram_url?: string | null
           menu_notice?: string | null
@@ -1186,9 +843,6 @@ export type Database = {
           customer_phone: string | null
           delivery_address: Json | null
           delivery_fee_cents: number
-          dest_lat: number | null
-          dest_lng: number | null
-          dest_source: string | null
           discount_cents: number
           has_price_pending: boolean
           id: string
@@ -1196,7 +850,6 @@ export type Database = {
           order_number: number
           order_type: string
           payment_method: string | null
-          restaurant_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal_cents: number
           total_cents: number
@@ -1216,30 +869,9 @@ export type Database = {
         Args: { p_delivery_id: string }
         Returns: string
       }
-      courier_report_position: {
-        Args: {
-          p_accuracy_m: number
-          p_captured_at: string
-          p_delivery_id: string
-          p_lat: number
-          p_lng: number
-          p_speed_kmh: number
-        }
-        Returns: string
-      }
       courier_return_delivery: {
         Args: { p_delivery_id: string; p_motivo: string }
         Returns: string
-      }
-      courier_set_eta: {
-        Args: {
-          p_delivery_id: string
-          p_distance_km: number
-          p_eta_minutes: number
-          p_polyline: string
-          p_provider?: string
-        }
-        Returns: undefined
       }
       create_contact: {
         Args: { p_message: string; p_name: string }
@@ -1263,56 +895,12 @@ export type Database = {
           r_total_cents: number
         }[]
       }
-      default_restaurant: { Args: never; Returns: string }
       dispatch_order: {
         Args: { p_courier_id: string; p_order_id: string }
         Returns: string
       }
-      distance_m: {
-        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
-        Returns: number
-      }
-      google_alert: {
-        Args: { p_cap: number; p_period: string; p_sku: string; p_used: number }
-        Returns: undefined
-      }
-      google_consolidate: {
-        Args: never
-        Returns: {
-          free_cap: number
-          pct: number
-          sku: string
-          used_events: number
-        }[]
-      }
-      google_period_start: { Args: { p_at?: string }; Returns: string }
-      google_reserve: {
-        Args: { p_cap: number; p_sku: string; p_soft_pct?: number }
-        Returns: string
-      }
       is_admin: { Args: never; Returns: boolean }
       is_courier: { Args: never; Returns: boolean }
-      is_order_restaurant_member: {
-        Args: { p_order_id: string }
-        Returns: boolean
-      }
-      is_restaurant_member: {
-        Args: { p_restaurant_id: string }
-        Returns: boolean
-      }
-      log_denied: {
-        Args: { p_device: string; p_ip: string; p_user: string }
-        Returns: undefined
-      }
-      order_set_destination: {
-        Args: {
-          p_lat: number
-          p_lng: number
-          p_order_id: string
-          p_source: string
-        }
-        Returns: string
-      }
       order_status_ok: {
         Args: {
           p_de: Database["public"]["Enums"]["order_status"]
@@ -1321,26 +909,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      order_tracking: {
-        Args: { p_order_id: string }
-        Returns: {
-          dest_lat: number
-          dest_lng: number
-          distance_km: number
-          eta_minutes: number
-          eta_updated_at: string
-          lat: number
-          lng: number
-          restaurant_lat: number
-          restaurant_lng: number
-          route_polyline: string
-          route_provider: string
-          speed_kmh: number
-          status: string
-          updated_at: string
-        }[]
-      }
-      purge_delivery_positions: { Args: never; Returns: number }
       review_decline: { Args: { p_order_id: string }; Returns: undefined }
       review_google_click: { Args: never; Returns: undefined }
       review_invite: {
